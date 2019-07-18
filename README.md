@@ -1,27 +1,180 @@
-# mapping-sdk
-## npm i keystore_wdc;
-## const KeyStore = require('wdc-keystore');
-## const ks = new KeyStore();
-## //add
-## async function add(){
-## 	const keystore = await ks.Create("your password");
-## }
-## //address to PubkeyHash
-## const pubkeyHash = ks.addressToPubkeyHash("your address")
-##
-## //prikey to Pubkey
-## const pubkey = ks.prikeyToPubkey("your prikey");
-## 
-## //keysote to pubkey
-## async function getpubkey(){
-## 	const pubkey = await ks.keystoreToPubkey("your keystore","your password");
-## }
-## 
-## //keystore to prikey
-## async function getprikey(){
-## 	const prikey = await ks.DecryptSecretKeyfull("your keystore","your password");
-## }
-## 
+# js-sdk
+
+## 一、本地方法 
+
+```
+npm i keystore_wdc;
+const KeyStore = require('wdc-keystore');
+const ks = new KeyStore();
+```
+#### 生成keystore
+```
+async function create(){
+     const keystore = await ks.Create("your password");
+}
+```
+* 返回keystore
+
+#### 校验地址合法性
+```
+const lawful = verifyAddress("your address");
+```
+返回值:
+*  0  合法
+* -1  地址格式不正确
+* -2  错误地址
+
+#### 地址转公钥哈希
+```
+const pubkeyHash = ks.addressToPubkeyHash("your address")
+```
+* 返回公钥哈希
+
+#### 公钥哈希转地址
+```
+const address = ks.    pubkeyHashToaddress("your pubkeyHash")
+```
+* 返回地址
+
+#### 私钥转公钥
+```
+ const pubkey = ks.prikeyToPubkey("your prikey");
+```
+* 返回公钥
+
+#### 通过keystore获取公钥
+```
+ async function getpubkey(){
+ 	const pubkey = await ks.keystoreToPubkey("your keystore","your password");
+ }
+``` 
+* 返回公钥
+
+#### 通过keystore获取私钥
+```
+ async function getprikey(){
+ 	const prikey = await ks.DecryptSecretKeyfull("your keystore","your password");
+ }
+```
+* 返回私钥
+
+#### 构造转账实务
+```
+const transfer = ks.ClientToTransferAccount(fromPubkey,toPubkeyHash,amount,prikeyStr,nonce);
+
+fromPubkey：发起转转账者公钥
+toPubkeyHash：接收者公钥哈希
+amount：转账金额
+prikey:私钥
+nonce：nonce(通过节点获取)
+```
+* 返回：
+*   'txHash'：事务哈希
+*   'transaction': 整个事务
+
+## 二、节点RPC接口
+
+#### 连接节点，ip+端口+调用方法+参数
+
+1.0 获取Nonce
+```
+   方法：sendNonce     
+	参数：pubkeyhash(String)  
+	返回：
+	{"message":"","data":[],"statusCode":int}
+	data:Noce(Long)
+```
+
+1.1 获取余额
+```
+   方法：sendBalance(POET)   
+	参数：address(String) 	
+ 	返回:
+ 	{"message":"","data":[],"statusCode":int}
+	data:balance(Long)
+```
+
+1.2 广播事务
+```
+   方法： sendTransaction(POST)	
+	参数：traninfo(String)
+	返回：
+ 	{"message":"","data":[],"statusCode":int}
+```
+        
+1.3 查询当前区块高度
+```
+   方法：height(GET)
+    返回：
+	{"message":"","data":0,"statusCode":int}
+	data:height(Long)
+```
+		
+1.4 根据事务哈希获得所在区块哈希以及高度
+```
+   方法：blockHash(GET)
+	参数：txHash(String)
+	返回：
+	{
+    	data :定义如下;
+        statusCode(int):int
+	    message(String):""
+    }
+    data:
+   {
+        "blockHash":区块哈希(十六进制字符串), 
+        "height":区块高度(Long)
+   }
+```
+
+1.5 根据事务哈希获得区块确认状态(GET)
+```
+   方法：transactionConfirmed
+	参数：txHash(String)
+	返回： 
+   {"message":"","data":[],"statusCode":int}
+   statusCode: status(int)
+```
+
+1.6 根据区块高度获取事务列表
+```
+   方法: getTransactionHeight(POST) 
+   参数: int height 区块高度
+   返回格式:{"message":"SUCCESS","data":[],"statusCode":1}
+   data格式:
+	String block_hash; 区块哈希16进制字符串
+	long height; 区块高度
+	int version; 版本号
+	String tx_hash; 事务哈希16进制字符串
+	int type;  事务类型
+	long nonce;nonce
+	String from;  发起者公钥16进制字符串
+	long gas_price; 事务手续费单价
+	long amount; 金额
+	String payload; payload数据
+	String signature; 签名16进制字符串
+	String to;  接受者公钥哈希16进制字符串
+```
+
+1.7 通过区块哈希获取事务列表
+```
+   方法：getTransactionBlcok(POST)
+   参数 String blockhash 区块哈希16进制字符串
+   返回格式:{"message":"SUCCESS","data":[],"statusCode":1}
+   data格式:
+	String block_hash; 区块哈希16进制字符串
+	long height; 区块高度
+	int version; 版本号
+	String tx_hash; 事务哈希16进制字符串
+	int type;  事务类型
+	long nonce;nonce
+	String from;  发起者公钥16进制字符串
+	long gas_price; 事务手续费单价
+	long amount; 金额
+	String payload; payload数据
+	String signature; 签名16进制字符串
+	String to;  接受者公钥哈希16进制字符串
+```
 
 
 
