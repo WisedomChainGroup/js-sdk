@@ -1,7 +1,7 @@
 # js-sdk
 
 ## 一、本地方法 
-##### sdk所以方法异常返回5000
+##### 所有方法异常返回5000
 ```
 npm i keystore_wdc;
 const KeyStore = require('wdc-keystore');
