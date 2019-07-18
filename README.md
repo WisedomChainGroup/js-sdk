@@ -1,7 +1,7 @@
 # js-sdk
 
 ## 一、本地方法 
-
+##### sdk所以方法异常返回5000
 ```
 npm i keystore_wdc;
 const KeyStore = require('wdc-keystore');
@@ -17,7 +17,7 @@ async function create(){
 
 #### 校验地址合法性
 ```
-const lawful = verifyAddress("your address");
+const lawful = ks.verifyAddress("your address");
 ```
 返回值:
 *  0  合法
@@ -75,6 +75,21 @@ nonce：nonce(通过节点获取)
 ## 二、节点RPC接口
 
 #### 连接节点，ip+端口+调用方法+参数
+#### 返回格式
+##### {"message":"","data":[],"statusCode":int}
+* message：描述
+* data   ：数据
+* statusCode：      
+```   
+{
+    2000 正确
+    2100 已确认
+    2200 未确认
+    5000 错误
+    6000 格式错误
+    7000 校验错误
+    8000 异常
+}
 
 1.0 获取Nonce
 ```
@@ -175,6 +190,8 @@ nonce：nonce(通过节点获取)
 	String signature; 签名16进制字符串
 	String to;  接受者公钥哈希16进制字符串
 ```
+
+
 
 
 
