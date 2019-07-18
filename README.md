@@ -32,7 +32,7 @@ const pubkeyHash = ks.addressToPubkeyHash("your address")
 
 #### 公钥哈希转地址
 ```
-const address = ks.    pubkeyHashToaddress("your pubkeyHash")
+const address = ks.pubkeyHashToaddress("your pubkeyHash")
 ```
 * 返回地址
 
