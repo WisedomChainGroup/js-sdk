@@ -111,7 +111,7 @@ nonce：nonce(通过节点获取)
 
 1.1 获取余额
 ```
-   方法：sendBalance(POET)   
+   方法：sendBalance(POST)   
 	参数：pubkeyhash(十六进制字符串) 	
  	返回:
  	{"message":"","data":[],"statusCode":int}
