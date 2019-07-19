@@ -1,7 +1,7 @@
 # js-sdk
 
 ## 一、本地方法 
-##### 所有方法异常返回5000
+##### sdk所以方法异常返回5000
 ```
 npm i keystore_wdc;
 const KeyStore = require('wdc-keystore');
@@ -13,7 +13,16 @@ async function create(){
      const keystore = await ks.Create("your password");
 }
 ```
-* 返回keystore
+* 返回keystore，密码格式不正确返回-1。
+
+#### 修改keystore密码
+```
+async function modifypassword(){
+     const keystore = await ks.Create("your keystore","your password","your newpassword");
+}
+```
+* 返回keystore，密码格式不正确返回-1。 
+
 
 #### 校验地址合法性
 ```
