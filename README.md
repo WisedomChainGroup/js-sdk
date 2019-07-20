@@ -4,7 +4,7 @@
 ##### sdk所以方法异常返回5000
 ```
 npm i keystore_wdc;
-const KeyStore = require('wdc-keystore');
+const KeyStore = require('keystore_wdc');
 const ks = new KeyStore();
 ```
 #### 生成keystore
