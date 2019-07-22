@@ -84,6 +84,7 @@ nonce：nonce(通过节点获取)
 ## 二、节点RPC接口
 
 #### 连接节点，ip+端口+调用方法+参数
+#### Content-Type: application/json;charset=UTF-8
 #### 返回格式
 ##### {"message":"","data":[],"statusCode":int}
 * message：描述
@@ -102,7 +103,7 @@ nonce：nonce(通过节点获取)
 ```
 1.0 获取Nonce
 ```
-   方法：sendNonce     
+   方法：sendNonce(POST)     
 	参数：pubkeyhash(String)  
 	返回：
 	{"message":"","data":[],"statusCode":int}
