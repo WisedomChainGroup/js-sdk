@@ -107,7 +107,7 @@ nonce：nonce(通过节点获取)
 	参数：pubkeyhash(String)  
 	返回：
 	{"message":"","data":[],"statusCode":int}
-	data:Noce(Long)
+	data:Nonce(Long)
 ```
 
 1.1 获取余额
