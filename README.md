@@ -73,7 +73,7 @@ const transfer = ks.ClientToTransferAccount(fromPubkey,toPubkeyHash,amount,prike
 
 fromPubkey：发起转转账者公钥
 toPubkeyHash：接收者公钥哈希
-amount：转账金额
+amount：转账金额(必须是字符串！)
 prikey:私钥
 nonce：nonce(通过节点获取)
 ```
