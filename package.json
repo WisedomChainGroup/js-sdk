@@ -1,0 +1,45 @@
+{
+  "_from": "keystore_wdc",
+  "_id": "keystore_wdc@0.1.1",
+  "_inBundle": false,
+  "_integrity": "sha512-/X8vzH12FkNbectb/EjOUsA/vaPeO0cEC/yWFqY5gLBKtgbL/OrOUY4/ERvOzFSw1JGOSjGSNBWSm30a8O8F2A==",
+  "_location": "/keystore_wdc",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "keystore_wdc",
+    "name": "keystore_wdc",
+    "escapedName": "keystore_wdc",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/keystore_wdc/-/keystore_wdc-0.1.1.tgz",
+  "_shasum": "cc3491a85ea3bac54482520cc91059d9e911ff12",
+  "_spec": "keystore_wdc",
+  "_where": "/home/zhangtong/wdc sdk/sdk npm",
+  "author": "",
+  "bundleDependencies": false,
+  "dependencies": {
+    "argon2": "^0.19.3",
+    "bn": "^1.0.3",
+    "bn.js": "^5.0.0",
+    "int64-buffer": "^0.99.1007"
+  },
+  "deprecated": false,
+  "keywords": [
+    "wdc"
+  ],
+  "license": "ISC",
+  "main": "keystore.js",
+  "name": "keystore_wdc",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "0.1.1"
+}

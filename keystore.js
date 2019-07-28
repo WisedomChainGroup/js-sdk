@@ -13,6 +13,7 @@ const bs58 = require('./base58');
 const Decimal = require('./decimal.js');
 const nacl = require('./nacl.min.js');
 const BN = require('bn.js');
+var Uint64BE = require("./int64-buffer").Uint64BE;
 
 class KeyStore {
     constructor() {
@@ -375,6 +376,25 @@ class KeyStore {
         return str;
     }
 
+    mul(amount){
+	var arr =amount.split(".");
+	let newAmount=0;
+	if(arr.length>1){
+        if(arr[1].length>8){
+	 return -1;	
+	}
+	let len = arr[1].length;
+	let decimal = arr[1];
+	for(var i=0;i<(8-len);i++){
+		decimal=decimal+"0";
+	}
+		newAmount =arr[0]+decimal;
+	}else{
+		newAmount = amount;
+	}
+	return newAmount;
+     }
+
     encodeUint32(value){
         const buf = Buffer.alloc(4);
         buf[0] = ((value & 0x00000000FF000000) >>> 24);	
@@ -384,36 +404,51 @@ class KeyStore {
         return buf;
     }
 
-
-    encodeUint64(value){
-	    const buf = Buffer.alloc(8);
-	    buf[0] = ((value & 0xFF00000000000000) >>> 56);
-        buf[1] = ((value & 0x00FF000000000000) >>> 48);
-        buf[2] = ((value & 0x0000FF0000000000) >>> 40);
-        buf[3] = ((value & 0x000000FF00000000) >>> 32);
-        buf[4] = ((value & 0x00000000FF000000) >>> 24);
-        buf[5] = ((value & 0x0000000000FF0000) >>> 16);
-        buf[6] = ((value & 0x000000000000FF00) >>> 8);
-        buf[7] = (value &  0x00000000000000FF);
-	    return buf;
-    }
+    numberToString(arg) {
+        if (typeof arg === 'string') {
+          if (!arg.match(/^-?[0-9.]+$/)) {
+            throw new Error(`while converting number to string, invalid number value '${arg}', should be a number matching (^-?[0-9.]+).`);
+          }
+          return arg;
+        } else if (typeof arg === 'number') {
+          return -1;
+        } else if (typeof arg === 'object' && arg.toString && (arg.toTwos || arg.dividedToIntegerBy)) {
+          if (arg.toPrecision) {
+            return String(arg.toPrecision());
+          } else { // eslint-disable-line
+            return arg.toString(10);
+          }
+        }
+        return -1;
+      }
 
     ClientToTransferAccount(fromPubkeyStr,toPubkeyHashStr,amount,prikeyStr,nonce){
         try{
+	    let isNum = this.numberToString(amount);
+            if(isNum == -1){
+                return 5000;
+            }
             //版本号
             let version="01";
             //类型：WDC转账
             let type="01";
             //Nonce 无符号64位
-            let nonece=this.Bytes2Str(this.encodeUint64(nonce+1));
+	    let _nonece=new Uint64BE((nonce+1).toString(),10).toString(16);
+            let nonece = '0000000000000000'.substr(_nonece.length) + _nonece;
             //签发者公钥哈希 20字节
             let fromPubkeyHash = fromPubkeyStr;
-            //gas单价
-            let gasPrice = this.Bytes2Str(this.encodeUint64(4));
+            //gas单价  
+	    let price = "4";
+	    let _gasPrice=new Uint64BE(price,10).toString(16);
+            let gasPrice = '0000000000000000'.substr(_gasPrice.length) + _gasPrice;
             //转账金额 无符号64位
-            let rate=100000000;
-            let bdAmount = new Decimal(amount).mul(new Decimal(rate).toNumber());
-            let Amount=this.Bytes2Str(this.encodeUint64(bdAmount));
+   	    let mul = this.mul(amount);
+		if(mul < 0){
+		return 5000;
+		}
+	    let _Amount=new Uint64BE(mul,10).toString(16);
+            let Amount = '0000000000000000'.substr(_Amount.length) + _Amount;
+	    //
             //为签名留白
             const buffersignull = Buffer.alloc(64);
             let signull = this.Bytes2Str(buffersignull);
@@ -436,6 +471,7 @@ class KeyStore {
                 'transaction': signRawBasicTransaction
             }
         } catch (error) {
+console.log(error);
             return 5000;   
         }
     }
