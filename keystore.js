@@ -433,7 +433,7 @@ class KeyStore {
             //类型：WDC转账
             let type="01";
             //Nonce 无符号64位
-	    let _nonece=new Uint64BE((nonce+1).toString(),10).toString(16);
+	    let _nonece=new Uint64BE((Number(nonce)+1).toString(),10).toString(16);
             let nonece = '0000000000000000'.substr(_nonece.length) + _nonece;
             //签发者公钥哈希 20字节
             let fromPubkeyHash = fromPubkeyStr;
@@ -471,7 +471,6 @@ class KeyStore {
                 'transaction': signRawBasicTransaction
             }
         } catch (error) {
-console.log(error);
             return 5000;   
         }
     }
