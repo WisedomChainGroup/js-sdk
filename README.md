@@ -33,13 +33,13 @@ const lawful = ks.verifyAddress("your address");
 * -1  地址格式不正确
 * -2  错误地址
 
-#### 地址转公钥哈希
+#### 地址转公钥哈希（注意！调用此方法之前需要先调用校验地方合法性的方法判断地址是否合法！verifyAddress（"your address"））
 ```
 const pubkeyHash = ks.addressToPubkeyHash("your address")
 ```
 * 返回公钥哈希
 
-#### 公钥哈希转地址
+#### 公钥哈希转地址（）
 ```
 const address = ks.pubkeyHashToaddress("your pubkeyHash")
 ```
