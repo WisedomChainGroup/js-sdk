@@ -14,6 +14,7 @@ const Decimal = require('./decimal.js');
 const nacl = require('./nacl.min.js');
 const BN = require('bn.js');
 var Uint64BE = require("./int64-buffer").Uint64BE;
+var uint32 = require('uint32');
 
 class KeyStore {
     constructor() {
@@ -390,7 +391,7 @@ class KeyStore {
 	}
 		newAmount =arr[0]+decimal;
 	}else{
-		newAmount = amount;
+		newAmount = amount+"00000000";
 	}
 	return newAmount;
      }
@@ -422,9 +423,10 @@ class KeyStore {
         return -1;
       }
 
+    //转账
     ClientToTransferAccount(fromPubkeyStr,toPubkeyHashStr,amount,prikeyStr,nonce){
         try{
-	    let isNum = this.numberToString(amount);
+	        let isNum = this.numberToString(amount);
             if(isNum == -1){
                 return 5000;
             }
@@ -433,22 +435,21 @@ class KeyStore {
             //类型：WDC转账
             let type="01";
             //Nonce 无符号64位
-	    let _nonece=new Uint64BE((Number(nonce)+1).toString(),10).toString(16);
+	        let _nonece=new Uint64BE((Number(nonce)+1).toString(),10).toString(16);
             let nonece = '0000000000000000'.substr(_nonece.length) + _nonece;
             //签发者公钥哈希 20字节
             let fromPubkeyHash = fromPubkeyStr;
             //gas单价  
-	    let price = "4";
-	    let _gasPrice=new Uint64BE(price,10).toString(16);
+            let price = "4";
+            let _gasPrice=new Uint64BE(price,10).toString(16);
             let gasPrice = '0000000000000000'.substr(_gasPrice.length) + _gasPrice;
             //转账金额 无符号64位
-   	    let mul = this.mul(amount);
-		if(mul < 0){
-		return 5000;
-		}
-	    let _Amount=new Uint64BE(mul,10).toString(16);
+            let mul = this.mul(amount);
+            if(mul < 0){
+                return 5000;
+            }
+	        let _Amount=new Uint64BE(mul,10).toString(16);
             let Amount = '0000000000000000'.substr(_Amount.length) + _Amount;
-	    //
             //为签名留白
             const buffersignull = Buffer.alloc(64);
             let signull = this.Bytes2Str(buffersignull);
@@ -457,7 +458,6 @@ class KeyStore {
             //长度
             let allPayload= "00000000";
             let RawTransaction=Buffer.from(version+type+nonece+fromPubkeyHash+gasPrice+Amount+signull+toPubkeyHash+allPayload, 'hex');
-            let a = version+type+nonece+fromPubkeyHash+gasPrice+Amount+signull+toPubkeyHash+allPayload;
             //签名数据
             let secretKey = Buffer.from(prikeyStr+fromPubkeyStr, 'hex');
             let sigall = nacl.sign(RawTransaction,secretKey);
@@ -472,6 +472,273 @@ class KeyStore {
             }
         } catch (error) {
             return 5000;   
+        }
+    }
+
+    //存证
+    ClientToTransferProve(fromPubkeyStr,nonce,payloadbyte,prikeyStr){
+        try {
+            //版本号
+            let version="01";
+            //类型：存证
+            let type="03";
+            //Nonce 无符号64位
+            let _nonece=new Uint64BE((Number(nonce)+1).toString(),10).toString(16);
+            let nonece = '0000000000000000'.substr(_nonece.length) + _nonece;
+            //签发者公钥哈希 20字节
+            let fromPubkeyHash = fromPubkeyStr;
+            //gas单价  
+            let price = "2";
+            let _gasPrice=new Uint64BE(price,10).toString(16);
+            let gasPrice = '0000000000000000'.substr(_gasPrice.length) + _gasPrice;
+            let mul = this.mul("0");
+            if(mul < 0){
+                return 5000;
+            }
+	        let _Amount=new Uint64BE(mul,10).toString(16);
+            let Amount = '0000000000000000'.substr(_Amount.length) + _Amount;
+            //为签名留白
+            const buffersignull = Buffer.alloc(64);
+            let signull = this.Bytes2Str(buffersignull);
+            //接收者公钥哈希
+            const buffertoPubkeyHash=Buffer.alloc(20);
+            let toPubkeyHash=this.Bytes2Str(buffertoPubkeyHash);
+            //长度
+            let payloadLen = uint32.toHex(payloadbyte.length);
+            let payload = this.Bytes2Str(payloadbyte);
+            let allPayload = payloadLen + payload;
+            console.log("allpayload:"+allPayload);
+            
+            let RawTransaction=Buffer.from(version+type+nonece+fromPubkeyHash+gasPrice+Amount+signull+toPubkeyHash+allPayload, 'hex');
+            //签名数据
+            let secretKey = Buffer.from(prikeyStr+fromPubkeyStr, 'hex');
+            let sigall = nacl.sign(RawTransaction,secretKey);
+            let sigHex = this.Bytes2Str(sigall).substring(0,128);
+            let _tra = version+type+nonece+fromPubkeyHash+gasPrice+Amount+sigHex+toPubkeyHash+allPayload;
+            let tra = Buffer.from(_tra,'hex');
+            let transha = keccak256(tra);
+            let signRawBasicTransaction = version+transha+type+nonece+fromPubkeyHash+gasPrice+Amount+sigHex+toPubkeyHash+allPayload;
+            return {
+                'txHash': transha,
+                'transaction': signRawBasicTransaction
+            }
+        } catch (error) {
+            console.error(error);
+            return 5000;
+        }
+    }
+
+    //投票
+    ClientToTransferVote(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr){
+        try {
+            let isNum = this.numberToString(amount);
+            if(isNum == -1){
+                return 5000;
+            }
+            //版本号
+            let version="01";
+            //类型：投票
+            let type="02";
+            //Nonce 无符号64位
+	        let _nonece=new Uint64BE((Number(nonce)+1).toString(),10).toString(16);
+            let nonece = '0000000000000000'.substr(_nonece.length) + _nonece;
+            //签发者公钥哈希 20字节
+            let fromPubkeyHash = fromPubkeyStr;
+            //gas单价  
+            let price = "10";
+            let _gasPrice=new Uint64BE(price,10).toString(16);
+            let gasPrice = '0000000000000000'.substr(_gasPrice.length) + _gasPrice;
+            //转账金额 无符号64位
+            let mul = this.mul(amount);
+            if(mul < 0){
+                return 5000;
+            }
+	        let _Amount=new Uint64BE(mul,10).toString(16);
+            let Amount = '0000000000000000'.substr(_Amount.length) + _Amount;
+            //为签名留白
+            const buffersignull = Buffer.alloc(64);
+            let signull = this.Bytes2Str(buffersignull);
+            //接收者公钥哈希
+            let toPubkeyHash=toPubkeyHashStr;
+            //长度
+            let allPayload= "00000000";
+            let RawTransaction=Buffer.from(version+type+nonece+fromPubkeyHash+gasPrice+Amount+signull+toPubkeyHash+allPayload, 'hex');
+            //签名数据
+            let secretKey = Buffer.from(prikeyStr+fromPubkeyStr, 'hex');
+            let sigall = nacl.sign(RawTransaction,secretKey);
+            let sigHex = this.Bytes2Str(sigall).substring(0,128);
+            let _tra = version+type+nonece+fromPubkeyHash+gasPrice+Amount+sigHex+toPubkeyHash+allPayload;
+            let tra = Buffer.from(_tra,'hex');
+            let transha = keccak256(tra);
+            let signRawBasicTransaction = version+transha+type+nonece+fromPubkeyHash+gasPrice+Amount+sigHex+toPubkeyHash+allPayload;
+            return {
+                'txHash': transha,
+                'transaction': signRawBasicTransaction
+            }
+        } catch (error) {
+            return 5000;
+        }
+    }
+
+    //撤回投票
+    ClientToTransferVoteWithdraw(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr,txid){
+        try {
+            let isNum = this.numberToString(amount);
+            if(isNum == -1){
+                return 5000;
+            }
+            //版本号
+            let version="01";
+            //类型：撤回投票
+            let type="0d";
+            //Nonce 无符号64位
+	        let _nonece=new Uint64BE((Number(nonce)+1).toString(),10).toString(16);
+            let nonece = '0000000000000000'.substr(_nonece.length) + _nonece;
+            //签发者公钥哈希 20字节
+            let fromPubkeyHash = fromPubkeyStr;
+            //gas单价  
+            let price = "10";
+            let _gasPrice=new Uint64BE(price,10).toString(16);
+            let gasPrice = '0000000000000000'.substr(_gasPrice.length) + _gasPrice;
+            //转账金额 无符号64位
+            let mul = this.mul(amount);
+            if(mul < 0){
+                return 5000;
+            }
+	        let _Amount=new Uint64BE(mul,10).toString(16);
+            let Amount = '0000000000000000'.substr(_Amount.length) + _Amount;
+            //为签名留白
+            const buffersignull = Buffer.alloc(64);
+            let signull = this.Bytes2Str(buffersignull);
+            //接收者公钥哈希
+            let toPubkeyHash=toPubkeyHashStr;
+            //长度
+            let payloadLen = uint32.toHex(Buffer.from(txid, 'hex').length);
+            let payload = txid;
+            let allPayload = payloadLen + payload;
+
+            let RawTransaction=Buffer.from(version+type+nonece+fromPubkeyHash+gasPrice+Amount+signull+toPubkeyHash+allPayload, 'hex');
+            //签名数据
+            let secretKey = Buffer.from(prikeyStr+fromPubkeyStr, 'hex');
+            let sigall = nacl.sign(RawTransaction,secretKey);
+            let sigHex = this.Bytes2Str(sigall).substring(0,128);
+            let _tra = version+type+nonece+fromPubkeyHash+gasPrice+Amount+sigHex+toPubkeyHash+allPayload;
+            let tra = Buffer.from(_tra,'hex');
+            let transha = keccak256(tra);
+            let signRawBasicTransaction = version+transha+type+nonece+fromPubkeyHash+gasPrice+Amount+sigHex+toPubkeyHash+allPayload;
+            return {
+                'txHash': transha,
+                'transaction': signRawBasicTransaction
+            }
+        } catch (error) {
+            
+        }
+    }
+    //抵押
+    ClientToTransferMortgage(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr){
+        try {
+            let isNum = this.numberToString(amount);
+            if(isNum == -1){
+                return 5000;
+            }
+            //版本号
+            let version="01";
+            //类型：抵押
+            let type="0e";
+            //Nonce 无符号64位
+	        let _nonece=new Uint64BE((Number(nonce)+1).toString(),10).toString(16);
+            let nonece = '0000000000000000'.substr(_nonece.length) + _nonece;
+            //签发者公钥哈希 20字节
+            let fromPubkeyHash = fromPubkeyStr;
+            //gas单价  
+            let price = "10";
+            let _gasPrice=new Uint64BE(price,10).toString(16);
+            let gasPrice = '0000000000000000'.substr(_gasPrice.length) + _gasPrice;
+            //转账金额 无符号64位
+            let mul = this.mul(amount);
+            if(mul < 0){
+                return 5000;
+            }
+	        let _Amount=new Uint64BE(mul,10).toString(16);
+            let Amount = '0000000000000000'.substr(_Amount.length) + _Amount;
+            //为签名留白
+            const buffersignull = Buffer.alloc(64);
+            let signull = this.Bytes2Str(buffersignull);
+            //接收者公钥哈希
+            let toPubkeyHash=toPubkeyHashStr;
+            //长度
+            let allPayload= "00000000";
+            let RawTransaction=Buffer.from(version+type+nonece+fromPubkeyHash+gasPrice+Amount+signull+toPubkeyHash+allPayload, 'hex');
+            //签名数据
+            let secretKey = Buffer.from(prikeyStr+fromPubkeyStr, 'hex');
+            let sigall = nacl.sign(RawTransaction,secretKey);
+            let sigHex = this.Bytes2Str(sigall).substring(0,128);
+            let _tra = version+type+nonece+fromPubkeyHash+gasPrice+Amount+sigHex+toPubkeyHash+allPayload;
+            let tra = Buffer.from(_tra,'hex');
+            let transha = keccak256(tra);
+            let signRawBasicTransaction = version+transha+type+nonece+fromPubkeyHash+gasPrice+Amount+sigHex+toPubkeyHash+allPayload;
+            return {
+                'txHash': transha,
+                'transaction': signRawBasicTransaction
+            }
+        } catch (error) {
+            return 5000;
+        }
+    }
+
+    //撤回抵押
+    ClientToTransferMortgageWithdraw(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr,txid){
+        try {
+            let isNum = this.numberToString(amount);
+            if(isNum == -1){
+                return 5000;
+            }
+            //版本号
+            let version="01";
+            //类型：撤回投票
+            let type="0f";
+            //Nonce 无符号64位
+	        let _nonece=new Uint64BE((Number(nonce)+1).toString(),10).toString(16);
+            let nonece = '0000000000000000'.substr(_nonece.length) + _nonece;
+            //签发者公钥哈希 20字节
+            let fromPubkeyHash = fromPubkeyStr;
+            //gas单价  
+            let price = "10";
+            let _gasPrice=new Uint64BE(price,10).toString(16);
+            let gasPrice = '0000000000000000'.substr(_gasPrice.length) + _gasPrice;
+            //转账金额 无符号64位
+            let mul = this.mul(amount);
+            if(mul < 0){
+                return 5000;
+            }
+	        let _Amount=new Uint64BE(mul,10).toString(16);
+            let Amount = '0000000000000000'.substr(_Amount.length) + _Amount;
+            //为签名留白
+            const buffersignull = Buffer.alloc(64);
+            let signull = this.Bytes2Str(buffersignull);
+            //接收者公钥哈希
+            let toPubkeyHash=toPubkeyHashStr;
+            //长度
+            let payloadLen = uint32.toHex(Buffer.from(txid, 'hex').length);
+            let payload = txid;
+            let allPayload = payloadLen + payload;
+
+            let RawTransaction=Buffer.from(version+type+nonece+fromPubkeyHash+gasPrice+Amount+signull+toPubkeyHash+allPayload, 'hex');
+            //签名数据
+            let secretKey = Buffer.from(prikeyStr+fromPubkeyStr, 'hex');
+            let sigall = nacl.sign(RawTransaction,secretKey);
+            let sigHex = this.Bytes2Str(sigall).substring(0,128);
+            let _tra = version+type+nonece+fromPubkeyHash+gasPrice+Amount+sigHex+toPubkeyHash+allPayload;
+            let tra = Buffer.from(_tra,'hex');
+            let transha = keccak256(tra);
+            let signRawBasicTransaction = version+transha+type+nonece+fromPubkeyHash+gasPrice+Amount+sigHex+toPubkeyHash+allPayload;
+            return {
+                'txHash': transha,
+                'transaction': signRawBasicTransaction
+            }
+        } catch (error) {
+            console.log(error);
+            return 5000;
         }
     }
 
