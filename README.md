@@ -42,8 +42,8 @@ const pubkeyHash = ks.addressToPubkeyHash("your address")
 #### 公钥哈希转地址（）
 ```
 const address = ks.pubkeyHashToaddress("your pubkeyHash",type)
-type: 1. 'WX' 普通地址
-      2. 'WR' 合约地址
+type:  'WX' 普通地址
+       'WR' 合约地址
 ```
 * 返回地址
 
@@ -82,6 +82,14 @@ nonce：nonce(通过节点获取)
 * 返回：
 *   'txHash'：事务哈希
 *   'transaction': 整个事务
+   
+#### 更新keystore版本
+```
+ async function updateKeystoreVersion1to2(){
+ 	const keystore = await ks.updateKeystoreVersion1to2("your keystore","your password");
+ }
+```
+* 返回keystore
 
 ## 二、节点RPC接口
 
