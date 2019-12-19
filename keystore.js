@@ -266,7 +266,12 @@ class KeyStore {
 
     addressToPubkeyHash(address){
         try{
-            let _r5 = new bs58().decode(address);
+            let _r5;
+            if(address.indexof("1" == 0)){
+                _r5 = new bs58().decode(address);
+            }else{
+                _r5 = new bs58().decode(address.substr(2));
+            }
             let r5 = this.buf2hex(_r5);
             let r2 = r5.substring(0,r5.length-8);
             let r1 = r2.substring(2,r2.length)
@@ -276,7 +281,7 @@ class KeyStore {
         }
     }
 
-    pubkeyHashToaddress(pubkeyHash){
+    pubkeyHashToaddress(pubkeyHash,type){
         try{
             let r1 = Buffer.from(pubkeyHash,'hex');
             let r2 = "00"+pubkeyHash;
@@ -287,7 +292,7 @@ class KeyStore {
             let b4 = r3.substring(0,8);
             let r5 = r2+b4;
             let r6 = new bs58().encode(this.Hex2Array(r5));
-            return  r6;
+            return  type+r6;
         } catch (error) {
             return 5000;   
         }
@@ -298,8 +303,12 @@ class KeyStore {
             if(address==""||address==null){
                 return -1;
             }
-            if(address.substring(0,1) == 1){
-                let _r5 = new bs58().decode(address);
+            if(address.indexof("1") == 0 || address.indexof("WX") == 0 || address.indexof("WR") == 0){
+                let _r5;
+                if( address.indexof("WX") == 0 || address.indexof("WR") == 0){
+                    _r5 = new bs58().decode(address.substr(2));
+                }
+                _r5 = new bs58().decode(address);
                 let a = Buffer.from(this.addressToPubkeyHash(address),'hex');
                 let b = keccak256(a)
                 let c =Buffer.from(b, 'hex');
@@ -311,7 +320,6 @@ class KeyStore {
                 }else{
                     return -2;
                 }
-
             }else{
                 return -1;
             }
@@ -328,7 +336,10 @@ class KeyStore {
             return 5000;   
         }
     }
-
+    async updateKeystoreVersion1to2(ks,pwd){
+       let result =  await this.modifyPassword(ks,pwd,pwd);
+       return result;
+    }
     async modifyPassword(ks,pwd,newpwd){
         try{
             if(pwd.length>20 || pwd.length<8){
@@ -337,52 +348,6 @@ class KeyStore {
             let _prikey = await this.DecryptSecretKeyfull(ks, pwd);
             let keyStore = {};
             const account = new AccountHandle().createAccount();
-            // //地址
-            // keyStore.address = account.addr;
-            // keyStore.crypto = {};
-            // //使用的加密算法，默认为aes-256-ctr
-            // keyStore.crypto.cipher = "aes-256-ctr";
-            // //keyStore.crypto.ciphertext = "";
-            // keyStore.crypto.cipherparams = {};
-            // //算法所需的参数，随机生成
-            // keyStore.crypto.cipherparams.iv = crypto.randomBytes(16).toString('hex');  // must be 128 bit, random 
-
-            // //const aesCtr = new aesjs.ModeOfOperation.ctr(key_256, new aesjs.Counter(5));
-            // //var encryptedBytes = aesCtr.encrypt(textBytes);
-            // //密钥加密方法
-            // keyStore.kdf = "Argon2id";
-            // //Argon2id的参数，分别是散列计算的迭代次数，必须使用的存储器的大小以及可以并行计算散列的CPU数量
-            // keyStore.kdfparams = {};
-            // keyStore.kdfparams.timeCost = 4;
-            // keyStore.kdfparams.memoryCost = 20480;
-            // keyStore.kdfparams.parallelism = 2;
-            // //Argon2id哈希计算使用的盐值，随机生成32
-            // keyStore.kdfparams.salt = crypto.randomBytes(32).toString('hex'); // random
-            // //keystore格式的版本号，默认为1
-            // keyStore.version = "1";
-            // //私钥加密
-            // const salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
-            // const options = {
-            //     timeCost: 4, memoryCost: 20480, parallelism: 2, type: argon2.argon2id, hashLength: 32, 
-            //     version: 0x13, raw: true, salt
-            // };
-            // const p1 = Buffer.from(newpwd, 'ascii').toString('hex');
-            // const s1 = keyStore.kdfparams.salt + p1;
-            // const derivedKey = await argon2.hash(s1, options);
-
-            // const vi = Buffer.from(keyStore.crypto.cipherparams.iv, 'hex');
-            // const aesCtr = new aesjs.ModeOfOperation.ctr(derivedKey, new aesjs.Counter(vi));
-            // let prikey = Buffer.from(_prikey,'hex');
-            // const encryptedBytes = aesCtr.encrypt(prikey);
-            // //加密过的私钥
-            // keyStore.crypto.ciphertext = aesjs.utils.hex.fromBytes(encryptedBytes);
-
-            // //用来比较解密密钥与口令的
-            // const dc = derivedKey.toString('hex') + keyStore.crypto.ciphertext;
-            // const dc_buf = Buffer.from(dc, 'hex');
-            // keyStore.mac = keccak256(dc_buf);
-            // //这是UUID，可以直接通过程序计算得到
-            // keyStore.id = uuidV4();
             //地址
             keyStore.address = account.addr;
             keyStore.crypto = {};
@@ -404,25 +369,21 @@ class KeyStore {
             keyStore.kdfparams.parallelism = 2;
             //Argon2id哈希计算使用的盐值，随机生成32
             keyStore.kdfparams.salt = crypto.randomBytes(32).toString('hex'); // random
-            //keystore格式的版本号，默认为1  2019.12.19日更新keystore版本2
-            keyStore.version = "2";
+            //keystore格式的版本号，默认为1
+            keyStore.version = "1";
             //私钥加密
-            // const salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
             const salt = Buffer.from(keyStore.kdfparams.salt, 'ascii');
             const options = {
                 timeCost: 4, memoryCost: 20480, parallelism: 2, type: argon2.argon2id, hashLength: 32, 
                 version: 0x13, raw: true, salt
             };
-            // const p1 = Buffer.from(pwd, 'ascii').toString('hex');
             const p1 = Buffer.from(pwd, 'ascii');
             let totalLength = salt.length+p1.length;
             const s1 = Buffer.concat([salt, p1], totalLength).toString('ascii');
-            // const s1 = keyStore.kdfparams.salt + p1;
             const derivedKey = await argon2.hash(s1, options);
 
             const vi = Buffer.from(keyStore.crypto.cipherparams.iv, 'hex');
             const aesCtr = new aesjs.ModeOfOperation.ctr(derivedKey, new aesjs.Counter(vi));
-            let _prikey = this.Bytes2Str(account.secretKey).substring(0,64);
             let prikey = Buffer.from(_prikey,'hex');
             const encryptedBytes = aesCtr.encrypt(prikey);
             //加密过的私钥

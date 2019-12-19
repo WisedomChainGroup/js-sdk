@@ -20,7 +20,7 @@ class AccountHandle {
     createAccount () {
         
         let keyPair = this.createkeyPair();
-        let s2 = this.pubKeyToaddress(keyPair.publicKey);
+        let s2 = this.pubKeyToaddress(keyPair.publicKey,"WX");
         return {
             'secretKey': keyPair.secretKey,
             'publicKey': keyPair.publicKey,
@@ -87,22 +87,11 @@ class AccountHandle {
     }
 
     Hex2Str(hex) {
-        // let ret = '';
-        // for(let i=0; i<hex.length; i+=2) {
-        //     ret += String.fromCharCode(parseInt(hex.substr(i,2), 16));
-        // }
-        // return ret;
-
         const obj = Buffer.from(hex, 'hex');
         return obj.toString('latin1');
     }
 
     Hex2Array(hex) {
-        // let ret = new Array();
-        // for(let i=0; i<hex.length; i+=2) {
-        //     ret.push(parseInt(hex.substr(i,2), 16));
-        // }
-        // return ret;
         return Buffer.from(hex, 'hex');
     }
 
@@ -112,7 +101,7 @@ class AccountHandle {
         return keyPair;
     }
   
-    pubKeyToaddress(publicKey){
+    pubKeyToaddress(publicKey,type){
         //     1）、对公钥进行SHA3-256哈希，再进行RIPEMD-160哈希，
         //         得到哈希值r1
         //    3）、在r1前面附加一个字节的版本号:0x00
@@ -136,7 +125,7 @@ class AccountHandle {
         let b4 = r3.substring(0,8);
         let r5 = r2+b4;
         let r6 = new bs58().encode(this.Hex2Array(r5));
-        return r6;
+        return type+r6;
     }
 
         

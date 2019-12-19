@@ -41,7 +41,9 @@ const pubkeyHash = ks.addressToPubkeyHash("your address")
 
 #### 公钥哈希转地址（）
 ```
-const address = ks.pubkeyHashToaddress("your pubkeyHash")
+const address = ks.pubkeyHashToaddress("your pubkeyHash",type)
+type: 1. 'WX' 普通地址
+      2. 'WR' 合约地址
 ```
 * 返回地址
 
