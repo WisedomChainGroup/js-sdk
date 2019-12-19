@@ -267,7 +267,7 @@ class KeyStore {
     addressToPubkeyHash(address){
         try{
             let _r5;
-            if(address.indexof("1" == 0)){
+            if(address.indexOf("1" == 0)){
                 _r5 = new bs58().decode(address);
             }else{
                 _r5 = new bs58().decode(address.substr(2));
@@ -294,6 +294,7 @@ class KeyStore {
             let r6 = new bs58().encode(this.Hex2Array(r5));
             return  type+r6;
         } catch (error) {
+            
             return 5000;   
         }
     }
@@ -303,9 +304,9 @@ class KeyStore {
             if(address==""||address==null){
                 return -1;
             }
-            if(address.indexof("1") == 0 || address.indexof("WX") == 0 || address.indexof("WR") == 0){
+            if(address.indexOf("1") == 0 || address.indexOf("WX") == 0 || address.indexOf("WR") == 0){
                 let _r5;
-                if( address.indexof("WX") == 0 || address.indexof("WR") == 0){
+                if( address.indexOf("WX") == 0 || address.indexOf("WR") == 0){
                     _r5 = new bs58().decode(address.substr(2));
                 }
                 _r5 = new bs58().decode(address);
