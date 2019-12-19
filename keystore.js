@@ -48,17 +48,20 @@ class KeyStore {
             keyStore.kdfparams.parallelism = 2;
             //Argon2id哈希计算使用的盐值，随机生成32
             keyStore.kdfparams.salt = crypto.randomBytes(32).toString('hex'); // random
-            //keystore格式的版本号，默认为1
-            keyStore.version = "1";
-
+            //keystore格式的版本号，默认为1  2019.12.19日更新keystore版本2
+            keyStore.version = "2";
             //私钥加密
-            const salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
+            // const salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
+            const salt = Buffer.from(keyStore.kdfparams.salt, 'ascii');
             const options = {
                 timeCost: 4, memoryCost: 20480, parallelism: 2, type: argon2.argon2id, hashLength: 32, 
                 version: 0x13, raw: true, salt
             };
-            const p1 = Buffer.from(pwd, 'ascii').toString('hex');
-            const s1 = keyStore.kdfparams.salt + p1;
+            // const p1 = Buffer.from(pwd, 'ascii').toString('hex');
+            const p1 = Buffer.from(pwd, 'ascii');
+            let totalLength = salt.length+p1.length;
+            const s1 = Buffer.concat([salt, p1], totalLength).toString('ascii');
+            // const s1 = keyStore.kdfparams.salt + p1;
             const derivedKey = await argon2.hash(s1, options);
 
             const vi = Buffer.from(keyStore.crypto.cipherparams.iv, 'hex');
@@ -89,16 +92,27 @@ class KeyStore {
     async DecryptSecretKey(addr, pwd) {
         const keyStore = this.Read(addr);
         if(keyStore == null) return null;
-
-        const salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
-
+        let salt;
+        let p1;
+        let totalLength;
+        let s1;
+        if(keyStore.version == 2){
+            salt = Buffer.from(keyStore.kdfparams.salt, 'ascii');
+            p1 = Buffer.from(pwd, 'ascii');
+            totalLength = salt.length+p1.length;
+            s1 = Buffer.concat([salt, p1], totalLength).toString('ascii');
+        }else{
+            salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
+            p1 = Buffer.from(pwd, 'ascii').toString('hex');
+            s1 = keyStore.kdfparams.salt + p1;
+        }
+        
         const options = {
             //memoryCost做了修改，修改成了20480，原因是与前面生成的参数不一致，改成一致
             timeCost: 4, memoryCost: 20480, parallelism: 2, type: argon2.argon2id, hashLength: 32, 
             version: 0x13, raw: true, salt
         };
-        const p1 = Buffer.from(pwd, 'ascii').toString('hex');
-        const s1 = keyStore.kdfparams.salt + p1;
+        
         const derivedKey = await argon2.hash(s1, options);
 
         const dc = derivedKey.toString('hex') + keyStore.crypto.ciphertext;
@@ -152,16 +166,25 @@ class KeyStore {
     async DecryptSecretKeyfull(keyStore, pwd) {
         try{
             if(keyStore == null) return null;
-
-            const salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
-
+            let salt;
+            let p1;
+            let totalLength;
+            let s1;
+            if(keyStore.version == 2){
+                salt = Buffer.from(keyStore.kdfparams.salt, 'ascii');
+                p1 = Buffer.from(pwd, 'ascii');
+                totalLength = salt.length+p1.length;
+                s1 = Buffer.concat([salt, p1], totalLength).toString('ascii');
+            }else{
+                salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
+                p1 = Buffer.from(pwd, 'ascii').toString('hex');
+                s1 = keyStore.kdfparams.salt + p1;
+            }
             const options = {
                 //memoryCost做了修改，修改成了20480，原因是与前面生成的参数不一致，改成一致
                 timeCost: 4, memoryCost: 20480, parallelism: 2, type: argon2.argon2id, hashLength: 32, 
                 version: 0x13, raw: true, salt
             };
-            const p1 = Buffer.from(pwd, 'ascii').toString('hex');
-            const s1 = keyStore.kdfparams.salt + p1;
             const derivedKey = await argon2.hash(s1, options);
 
             const dc = derivedKey.toString('hex') + keyStore.crypto.ciphertext;
@@ -195,16 +218,26 @@ class KeyStore {
 
     async verifySecretKey(keyStore, pwd) {
         if(keyStore == null) return null;
-
-        const salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
+        let salt;
+        let p1;
+        let totalLength;
+        let s1;
+        if(keyStore.version == 2){
+            salt = Buffer.from(keyStore.kdfparams.salt, 'ascii');
+            p1 = Buffer.from(pwd, 'ascii');
+            totalLength = salt.length+p1.length;
+            s1 = Buffer.concat([salt, p1], totalLength).toString('ascii');
+        }else{
+            salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
+            p1 = Buffer.from(pwd, 'ascii').toString('hex');
+            s1 = keyStore.kdfparams.salt + p1;
+        }
 
         const options = {
             //memoryCost做了修改，修改成了20480，原因是与前面生成的参数不一致，改成一致
             timeCost: 4, memoryCost: 20480, parallelism: 2, type: argon2.argon2id, hashLength: 32, 
             version: 0x13, raw: true, salt
         };
-        const p1 = Buffer.from(pwd, 'ascii').toString('hex');
-        const s1 = keyStore.kdfparams.salt + p1;
         const derivedKey = await argon2.hash(s1, options);
 
         const dc = derivedKey.toString('hex') + keyStore.crypto.ciphertext;
@@ -304,6 +337,52 @@ class KeyStore {
             let _prikey = await this.DecryptSecretKeyfull(ks, pwd);
             let keyStore = {};
             const account = new AccountHandle().createAccount();
+            // //地址
+            // keyStore.address = account.addr;
+            // keyStore.crypto = {};
+            // //使用的加密算法，默认为aes-256-ctr
+            // keyStore.crypto.cipher = "aes-256-ctr";
+            // //keyStore.crypto.ciphertext = "";
+            // keyStore.crypto.cipherparams = {};
+            // //算法所需的参数，随机生成
+            // keyStore.crypto.cipherparams.iv = crypto.randomBytes(16).toString('hex');  // must be 128 bit, random 
+
+            // //const aesCtr = new aesjs.ModeOfOperation.ctr(key_256, new aesjs.Counter(5));
+            // //var encryptedBytes = aesCtr.encrypt(textBytes);
+            // //密钥加密方法
+            // keyStore.kdf = "Argon2id";
+            // //Argon2id的参数，分别是散列计算的迭代次数，必须使用的存储器的大小以及可以并行计算散列的CPU数量
+            // keyStore.kdfparams = {};
+            // keyStore.kdfparams.timeCost = 4;
+            // keyStore.kdfparams.memoryCost = 20480;
+            // keyStore.kdfparams.parallelism = 2;
+            // //Argon2id哈希计算使用的盐值，随机生成32
+            // keyStore.kdfparams.salt = crypto.randomBytes(32).toString('hex'); // random
+            // //keystore格式的版本号，默认为1
+            // keyStore.version = "1";
+            // //私钥加密
+            // const salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
+            // const options = {
+            //     timeCost: 4, memoryCost: 20480, parallelism: 2, type: argon2.argon2id, hashLength: 32, 
+            //     version: 0x13, raw: true, salt
+            // };
+            // const p1 = Buffer.from(newpwd, 'ascii').toString('hex');
+            // const s1 = keyStore.kdfparams.salt + p1;
+            // const derivedKey = await argon2.hash(s1, options);
+
+            // const vi = Buffer.from(keyStore.crypto.cipherparams.iv, 'hex');
+            // const aesCtr = new aesjs.ModeOfOperation.ctr(derivedKey, new aesjs.Counter(vi));
+            // let prikey = Buffer.from(_prikey,'hex');
+            // const encryptedBytes = aesCtr.encrypt(prikey);
+            // //加密过的私钥
+            // keyStore.crypto.ciphertext = aesjs.utils.hex.fromBytes(encryptedBytes);
+
+            // //用来比较解密密钥与口令的
+            // const dc = derivedKey.toString('hex') + keyStore.crypto.ciphertext;
+            // const dc_buf = Buffer.from(dc, 'hex');
+            // keyStore.mac = keccak256(dc_buf);
+            // //这是UUID，可以直接通过程序计算得到
+            // keyStore.id = uuidV4();
             //地址
             keyStore.address = account.addr;
             keyStore.crypto = {};
@@ -325,20 +404,25 @@ class KeyStore {
             keyStore.kdfparams.parallelism = 2;
             //Argon2id哈希计算使用的盐值，随机生成32
             keyStore.kdfparams.salt = crypto.randomBytes(32).toString('hex'); // random
-            //keystore格式的版本号，默认为1
-            keyStore.version = "1";
+            //keystore格式的版本号，默认为1  2019.12.19日更新keystore版本2
+            keyStore.version = "2";
             //私钥加密
-            const salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
+            // const salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
+            const salt = Buffer.from(keyStore.kdfparams.salt, 'ascii');
             const options = {
                 timeCost: 4, memoryCost: 20480, parallelism: 2, type: argon2.argon2id, hashLength: 32, 
                 version: 0x13, raw: true, salt
             };
-            const p1 = Buffer.from(newpwd, 'ascii').toString('hex');
-            const s1 = keyStore.kdfparams.salt + p1;
+            // const p1 = Buffer.from(pwd, 'ascii').toString('hex');
+            const p1 = Buffer.from(pwd, 'ascii');
+            let totalLength = salt.length+p1.length;
+            const s1 = Buffer.concat([salt, p1], totalLength).toString('ascii');
+            // const s1 = keyStore.kdfparams.salt + p1;
             const derivedKey = await argon2.hash(s1, options);
 
             const vi = Buffer.from(keyStore.crypto.cipherparams.iv, 'hex');
             const aesCtr = new aesjs.ModeOfOperation.ctr(derivedKey, new aesjs.Counter(vi));
+            let _prikey = this.Bytes2Str(account.secretKey).substring(0,64);
             let prikey = Buffer.from(_prikey,'hex');
             const encryptedBytes = aesCtr.encrypt(prikey);
             //加密过的私钥
@@ -507,8 +591,6 @@ class KeyStore {
             let payloadLen = uint32.toHex(payloadbyte.length);
             let payload = this.Bytes2Str(payloadbyte);
             let allPayload = payloadLen + payload;
-            console.log("allpayload:"+allPayload);
-            
             let RawTransaction=Buffer.from(version+type+nonece+fromPubkeyHash+gasPrice+Amount+signull+toPubkeyHash+allPayload, 'hex');
             //签名数据
             let secretKey = Buffer.from(prikeyStr+fromPubkeyStr, 'hex');
@@ -523,7 +605,6 @@ class KeyStore {
                 'transaction': signRawBasicTransaction
             }
         } catch (error) {
-            console.error(error);
             return 5000;
         }
     }
@@ -737,7 +818,6 @@ class KeyStore {
                 'transaction': signRawBasicTransaction
             }
         } catch (error) {
-            console.log(error);
             return 5000;
         }
     }
