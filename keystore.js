@@ -348,9 +348,8 @@ class KeyStore {
             }
             let _prikey = await this.DecryptSecretKeyfull(ks, pwd);
             let keyStore = {};
-            const account = new AccountHandle().createAccount();
             //地址
-            keyStore.address = account.addr;
+            keyStore.address =new AccountHandle().pubKeyToaddress(Buffer.from(this.prikeyToPubkey(_prikey), 'hex'),"WX");
             keyStore.crypto = {};
             //使用的加密算法，默认为aes-256-ctr
             keyStore.crypto.cipher = "aes-256-ctr";
