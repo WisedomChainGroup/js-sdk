@@ -347,6 +347,9 @@ class KeyStore {
                 return -1;
             }
             let _prikey = await this.DecryptSecretKeyfull(ks, pwd);
+            if(_prikey.length == 128){
+                _prikey = _prikey.substring(0,64)
+            }
             let keyStore = {};
             //地址
             keyStore.address =new AccountHandle().pubKeyToaddress(Buffer.from(this.prikeyToPubkey(_prikey), 'hex'),"WX");
