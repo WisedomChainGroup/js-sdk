@@ -18,7 +18,7 @@ async function create(){
 #### 修改keystore密码
 ```
 async function modifypassword(){
-     const keystore = await ks.Create("your keystore","your password","your newpassword");
+     const keystore = await ks.modifyPassword("your keystore","your password","your newpassword");
 }
 ```
 * 返回keystore，密码格式不正确返回-1。 
