@@ -39,7 +39,7 @@ const pubkeyHash = ks.addressToPubkeyHash("your address")
 ```
 * 返回公钥哈希
 
-#### 公钥哈希转地址（）
+#### 公钥哈希转地址
 ```
 const address = ks.pubkeyHashToaddress("your pubkeyHash",type)
 type:  '1' 老地址不加前缀
