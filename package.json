@@ -1,28 +1,28 @@
 {
-  "_from": "keystore_wdc",
-  "_id": "keystore_wdc@0.1.1",
+  "_from": "keystore_wdc@^0.1.5",
+  "_id": "keystore_wdc@0.1.5",
   "_inBundle": false,
-  "_integrity": "sha512-/X8vzH12FkNbectb/EjOUsA/vaPeO0cEC/yWFqY5gLBKtgbL/OrOUY4/ERvOzFSw1JGOSjGSNBWSm30a8O8F2A==",
+  "_integrity": "sha512-W+qE0cxaf+RX7c8a6m7u7rynVU8yiV+rFN9hbYlJaYSO98z0B/MsmoVtAvTvXlvRGZmXa3P8AygRothR5Gw69g==",
   "_location": "/keystore_wdc",
   "_phantomChildren": {},
   "_requested": {
-    "type": "tag",
+    "type": "range",
     "registry": true,
-    "raw": "keystore_wdc",
+    "raw": "keystore_wdc@^0.1.5",
     "name": "keystore_wdc",
     "escapedName": "keystore_wdc",
-    "rawSpec": "",
+    "rawSpec": "^0.1.5",
     "saveSpec": null,
-    "fetchSpec": "latest"
+    "fetchSpec": "^0.1.5"
   },
   "_requiredBy": [
     "#USER",
     "/"
   ],
-  "_resolved": "https://registry.npmjs.org/keystore_wdc/-/keystore_wdc-0.1.1.tgz",
-  "_shasum": "cc3491a85ea3bac54482520cc91059d9e911ff12",
-  "_spec": "keystore_wdc",
-  "_where": "/home/zhangtong/wdc sdk/sdk npm",
+  "_resolved": "https://registry.npmjs.org/keystore_wdc/-/keystore_wdc-0.1.5.tgz",
+  "_shasum": "c8f554d4c384eacfd30a25fac1245d832f75cf8e",
+  "_spec": "keystore_wdc@^0.1.5",
+  "_where": "/Users/yongyang/work/project/npmtest",
   "author": "",
   "bundleDependencies": false,
   "dependencies": {
@@ -32,7 +32,6 @@
     "int64-buffer": "^0.99.1007",
     "jquery": "^3.4.1",
     "request": "^2.88.0",
-    "safe-buffer": "^5.2.0",
     "uint32": "^0.2.1",
     "uuid": "^3.3.3"
   },
@@ -46,5 +45,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "0.1.1"
+  "version": "0.1.6"
 }
