@@ -15,8 +15,7 @@ const nacl = require('./nacl.min.js');
 const BN = require('bn.js');
 var Uint64BE = require("./int64-buffer").Uint64BE;
 var uint32 = require('uint32');
-var Transaction = require('./transaction');
-
+const Transaction = require('./transaction');
 
 class KeyStore {
     constructor() {
@@ -50,17 +49,20 @@ class KeyStore {
             keyStore.kdfparams.parallelism = 2;
             //Argon2id哈希计算使用的盐值，随机生成32
             keyStore.kdfparams.salt = crypto.randomBytes(32).toString('hex'); // random
-            //keystore格式的版本号，默认为1
-            keyStore.version = "1";
-
+            //keystore格式的版本号，默认为1  2019.12.19日更新keystore版本2
+            keyStore.version = "2";
             //私钥加密
-            const salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
+            // const salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
+            const salt = Buffer.from(keyStore.kdfparams.salt, 'ascii');
             const options = {
                 timeCost: 4, memoryCost: 20480, parallelism: 2, type: argon2.argon2id, hashLength: 32, 
                 version: 0x13, raw: true, salt
             };
-            const p1 = Buffer.from(pwd, 'ascii').toString('hex');
-            const s1 = keyStore.kdfparams.salt + p1;
+            // const p1 = Buffer.from(pwd, 'ascii').toString('hex');
+            const p1 = Buffer.from(pwd, 'ascii');
+            let totalLength = salt.length+p1.length;
+            const s1 = Buffer.concat([salt, p1], totalLength).toString('ascii');
+            // const s1 = keyStore.kdfparams.salt + p1;
             const derivedKey = await argon2.hash(s1, options);
 
             const vi = Buffer.from(keyStore.crypto.cipherparams.iv, 'hex');
@@ -91,16 +93,27 @@ class KeyStore {
     async DecryptSecretKey(addr, pwd) {
         const keyStore = this.Read(addr);
         if(keyStore == null) return null;
-
-        const salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
-
+        let salt;
+        let p1;
+        let totalLength;
+        let s1;
+        if(keyStore.version == 2){
+            salt = Buffer.from(keyStore.kdfparams.salt, 'ascii');
+            p1 = Buffer.from(pwd, 'ascii');
+            totalLength = salt.length+p1.length;
+            s1 = Buffer.concat([salt, p1], totalLength).toString('ascii');
+        }else{
+            salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
+            p1 = Buffer.from(pwd, 'ascii').toString('hex');
+            s1 = keyStore.kdfparams.salt + p1;
+        }
+        
         const options = {
             //memoryCost做了修改，修改成了20480，原因是与前面生成的参数不一致，改成一致
             timeCost: 4, memoryCost: 20480, parallelism: 2, type: argon2.argon2id, hashLength: 32, 
             version: 0x13, raw: true, salt
         };
-        const p1 = Buffer.from(pwd, 'ascii').toString('hex');
-        const s1 = keyStore.kdfparams.salt + p1;
+        
         const derivedKey = await argon2.hash(s1, options);
 
         const dc = derivedKey.toString('hex') + keyStore.crypto.ciphertext;
@@ -154,16 +167,25 @@ class KeyStore {
     async DecryptSecretKeyfull(keyStore, pwd) {
         try{
             if(keyStore == null) return null;
-
-            const salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
-
+            let salt;
+            let p1;
+            let totalLength;
+            let s1;
+            if(keyStore.version == 2){
+                salt = Buffer.from(keyStore.kdfparams.salt, 'ascii');
+                p1 = Buffer.from(pwd, 'ascii');
+                totalLength = salt.length+p1.length;
+                s1 = Buffer.concat([salt, p1], totalLength).toString('ascii');
+            }else{
+                salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
+                p1 = Buffer.from(pwd, 'ascii').toString('hex');
+                s1 = keyStore.kdfparams.salt + p1;
+            }
             const options = {
                 //memoryCost做了修改，修改成了20480，原因是与前面生成的参数不一致，改成一致
                 timeCost: 4, memoryCost: 20480, parallelism: 2, type: argon2.argon2id, hashLength: 32, 
                 version: 0x13, raw: true, salt
             };
-            const p1 = Buffer.from(pwd, 'ascii').toString('hex');
-            const s1 = keyStore.kdfparams.salt + p1;
             const derivedKey = await argon2.hash(s1, options);
 
             const dc = derivedKey.toString('hex') + keyStore.crypto.ciphertext;
@@ -197,16 +219,26 @@ class KeyStore {
 
     async verifySecretKey(keyStore, pwd) {
         if(keyStore == null) return null;
-
-        const salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
+        let salt;
+        let p1;
+        let totalLength;
+        let s1;
+        if(keyStore.version == 2){
+            salt = Buffer.from(keyStore.kdfparams.salt, 'ascii');
+            p1 = Buffer.from(pwd, 'ascii');
+            totalLength = salt.length+p1.length;
+            s1 = Buffer.concat([salt, p1], totalLength).toString('ascii');
+        }else{
+            salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
+            p1 = Buffer.from(pwd, 'ascii').toString('hex');
+            s1 = keyStore.kdfparams.salt + p1;
+        }
 
         const options = {
             //memoryCost做了修改，修改成了20480，原因是与前面生成的参数不一致，改成一致
             timeCost: 4, memoryCost: 20480, parallelism: 2, type: argon2.argon2id, hashLength: 32, 
             version: 0x13, raw: true, salt
         };
-        const p1 = Buffer.from(pwd, 'ascii').toString('hex');
-        const s1 = keyStore.kdfparams.salt + p1;
         const derivedKey = await argon2.hash(s1, options);
 
         const dc = derivedKey.toString('hex') + keyStore.crypto.ciphertext;
@@ -235,7 +267,12 @@ class KeyStore {
 
     addressToPubkeyHash(address){
         try{
-            let _r5 = new bs58().decode(address);
+            let _r5;
+            if(address.indexOf("1") == 0){
+                _r5 = new bs58().decode(address);
+            }else{
+                _r5 = new bs58().decode(address.substr(2));
+            }
             let r5 = this.buf2hex(_r5);
             let r2 = r5.substring(0,r5.length-8);
             let r1 = r2.substring(2,r2.length)
@@ -245,7 +282,18 @@ class KeyStore {
         }
     }
 
-    pubkeyHashToaddress(pubkeyHash){
+    pubkeyToPubkeyHash(pubkey){
+        try{
+            let pub256 = keccak256(Buffer.from(pubkey,'hex'));
+            let bufPub256 = Buffer.from(pub256, 'hex');
+            let r1 = crypto.createHash('ripemd160').update(bufPub256).digest('hex');
+            return r1;
+        }catch (error) {
+            return 5000;   
+        }
+    }
+
+    pubkeyHashToaddress(pubkeyHash,type){
         try{
             let r1 = Buffer.from(pubkeyHash,'hex');
             let r2 = "00"+pubkeyHash;
@@ -256,8 +304,14 @@ class KeyStore {
             let b4 = r3.substring(0,8);
             let r5 = r2+b4;
             let r6 = new bs58().encode(this.Hex2Array(r5));
-            return  r6;
+            if(type == 1){
+                return "WX"+r6;
+            }else if(type == 2){
+                return  "WR"+r6; 
+            }
+            return 5000;
         } catch (error) {
+            
             return 5000;   
         }
     }
@@ -267,8 +321,13 @@ class KeyStore {
             if(address==""||address==null){
                 return -1;
             }
-            if(address.substring(0,1) == 1){
-                let _r5 = new bs58().decode(address);
+            if(address.indexOf("1") == 0 || address.indexOf("WX") == 0 || address.indexOf("WR") == 0){
+                let _r5;
+                if( address.indexOf("WX") == 0 || address.indexOf("WR") == 0){
+                    _r5 = new bs58().decode(address.substr(2));
+                }else{
+		    _r5 = new bs58().decode(address);		
+		}
                 let a = Buffer.from(this.addressToPubkeyHash(address),'hex');
                 let b = keccak256(a)
                 let c =Buffer.from(b, 'hex');
@@ -280,7 +339,6 @@ class KeyStore {
                 }else{
                     return -2;
                 }
-
             }else{
                 return -1;
             }
@@ -297,26 +355,22 @@ class KeyStore {
             return 5000;   
         }
     }
-
-    pubkeyToPubkeyhash(pubkey){
-        try{
-            let address = new AccountHandle().pubKeyToaddress(Buffer.from(pubkey,'hex')); 
-            return this.addressToPubkeyHash(address);
-        }catch(error){
-            return 5000;
-        }
+    async updateKeystoreVersion1to2(ks,pwd){
+       let result =  await this.modifyPassword(ks,pwd,pwd);
+       return result;
     }
-
     async modifyPassword(ks,pwd,newpwd){
         try{
-            if(pwd.length>20 || pwd.length<8){
+            if(newpwd.length>20 || newpwd.length<8){
                 return -1;
             }
             let _prikey = await this.DecryptSecretKeyfull(ks, pwd);
+            if(_prikey.length == 128){
+                _prikey = _prikey.substring(0,64)
+            }
             let keyStore = {};
-            const account = new AccountHandle().createAccount();
             //地址
-            keyStore.address = account.addr;
+            keyStore.address =new AccountHandle().pubKeyToaddress(Buffer.from(this.prikeyToPubkey(_prikey), 'hex'),"WX");
             keyStore.crypto = {};
             //使用的加密算法，默认为aes-256-ctr
             keyStore.crypto.cipher = "aes-256-ctr";
@@ -337,15 +391,16 @@ class KeyStore {
             //Argon2id哈希计算使用的盐值，随机生成32
             keyStore.kdfparams.salt = crypto.randomBytes(32).toString('hex'); // random
             //keystore格式的版本号，默认为1
-            keyStore.version = "1";
+            keyStore.version = "2";
             //私钥加密
-            const salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
+            const salt = Buffer.from(keyStore.kdfparams.salt, 'ascii');
             const options = {
                 timeCost: 4, memoryCost: 20480, parallelism: 2, type: argon2.argon2id, hashLength: 32, 
                 version: 0x13, raw: true, salt
             };
-            const p1 = Buffer.from(newpwd, 'ascii').toString('hex');
-            const s1 = keyStore.kdfparams.salt + p1;
+            const p1 = Buffer.from(newpwd, 'ascii');
+            let totalLength = salt.length+p1.length;
+            const s1 = Buffer.concat([salt, p1], totalLength).toString('ascii');
             const derivedKey = await argon2.hash(s1, options);
 
             const vi = Buffer.from(keyStore.crypto.cipherparams.iv, 'hex');
@@ -397,89 +452,100 @@ class KeyStore {
     ClientToTransferAccount(fromPubkeyStr,toPubkeyHashStr,amount,prikeyStr,nonce){
         return new Transaction().ClientToTransferAccount(fromPubkeyStr,toPubkeyHashStr,amount,prikeyStr,nonce);
     }
-    //存证
-    ClientToTransferProve(fromPubkeyStr,nonce,payloadbyte,prikeyStr){
-        return new Transaction().ClientToTransferProve(fromPubkeyStr,nonce,payloadbyte,prikeyStr);
+
+    AnalysisTransaction(msg){
+        return new Transaction().AnalysisTransaction(msg);
     }
-    //投票
-    ClientToTransferVote(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr){
-        return new Transaction().ClientToTransferVote(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr);
-    }
-    //撤回投票
-    ClientToTransferVoteWithdraw(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr,txid){
-        return new Transaction().ClientToTransferVoteWithdraw(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr,txid);
-    }
-    //抵押
-    ClientToTransferMortgage(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr){
-        return new Transaction().ClientToTransferMortgage(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr);
-    }
-    //撤回抵押
-    ClientToTransferMortgageWithdraw(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr,txid){
-       return new Transaction().ClientToTransferMortgageWithdraw(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr,txid);
-    }
-    //资产定义
-    CreateSignToDeployforRuleAsset(fromPubkeyStr,nonce,prikeyStr,code,offering,owner,allowincrease,info){
-        return new Transaction().CreateSignToDeployforRuleAsset(fromPubkeyStr,nonce,prikeyStr,code,offering,owner,allowincrease,info);
-    };
-    //更换所有者公钥哈希
-    CreateSignToDeployforAssetChangeowner(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,newOwnerPubkeyhash){
-        return new Transaction().CreateSignToDeployforAssetChangeowner(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,newOwnerPubkeyhash);
-    }
-    //资产转发
-    CreateSignToDeployforRuleTransfer(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_from,payload_to,payload_amount){
-        return new Transaction().CreateSignToDeployforRuleTransfer(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_from,payload_to,payload_amount);
-    }
-    //增发
-    CreateSignToDeployforRuleAssetIncreased(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_amount){
-        return new Transaction().CreateSignToDeployforRuleAssetIncreased(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_amount);
-    }
-    //部署哈希时间锁定
-    CreateHashTimeBlockForDeploy(fromPubkeyStr,nonce,prikeyStr,payload_assetHexStr,payload_pubkeyHashHexStr){
-        return new Transaction().CreateHashTimeBlockForDeploy(fromPubkeyStr,nonce,prikeyStr,payload_assetHexStr,payload_pubkeyHashHexStr);
-    }
-    //哈希时间锁定转发资产
-    CreateHashTimeBlockTransferForDeploy(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_value,payload_hashresult,payload_timestamp){
-        return new Transaction().CreateHashTimeBlockTransferForDeploy(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_value,payload_hashresult,payload_timestamp);
-    }
-    //哈希时间锁定获得锁定资产
-    CreateHashTimeBlockGetForDeploy(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_transferhash,origintext){
-        return new Transaction().CreateHashTimeBlockGetForDeploy(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_transferhash,origintext);
-    }
-    //部署哈希高度锁定
-    CreateHashHeightBlockForDeploy(fromPubkeyStr,nonce,prikeyStr,payload_assetHexStr,payload_pubkeyHashHexStr){
-        return new Transaction().CreateHashHeightBlockForDeploy(fromPubkeyStr,nonce,prikeyStr,payload_assetHexStr,payload_pubkeyHashHexStr);
-    }
-    //哈希高度锁定转发资产
-    CreateHashHeightBlockTransferForDeploy(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_value,payload_hashresult,payload_height){
-        return new Transaction().CreateHashHeightBlockTransferForDeploy(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_value,payload_hashresult,payload_height);
-    }
-    //哈希高度锁定获得锁定资产
-    CreateHashHeightBlockGetForDeploy(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_transferhash,origintext){
-        return new Transaction().CreateHashHeightBlockGetForDeploy(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_transferhash,origintext);
-    }
-    //部署多签(签发者构建)
-    CreateMultipleForRuleFirst(fromPubkeyStr,nonceNum,prikeyStr,payload_asset160hash,payload_m,payload_n,payload_pubkeyHashasBytesArray){
-        return new Transaction().CreateMultipleForRuleFirst(fromPubkeyStr,nonceNum,prikeyStr,payload_asset160hash,payload_m,payload_n,payload_pubkeyHashasBytesArray);
-    }
-    //部署多签(其他人签名)
-    CreateMultipleToDeployforRuleOther(signTransaction,rawTransaction,transaction_pubkey,fromPubkeyStr,prikeyStr,signTransactionArray,fromArray){
-        return new Transaction().CreateMultipleToDeployforRuleOther(signTransaction,rawTransaction,transaction_pubkey,fromPubkeyStr,prikeyStr,signTransactionArray,fromArray);
-    }
-    //多签部署组装事务（用于广播）
-    CreateMultipleForRuleSplice(rawTransaction,fromArray,signTransactionArray,prikeyStr){
-        return new Transaction().CreateMultipleForRuleSplice(rawTransaction,fromArray,signTransactionArray,prikeyStr);
-    }
-    //多签转账（签发者构建）
-    CreateMultisignatureForTransferFirst(fromPubkeyStr,toPubkeyHashStr,nonceNum,prikeyStr,payload_origin,payload_dest,payload_fromBytesArray,payload_to,payload_value,payload_pubkeyHashasBytesArray){
-        return new Transaction().CreateMultisignatureForTransferFirst(fromPubkeyStr,toPubkeyHashStr,nonceNum,prikeyStr,payload_origin,payload_dest,payload_fromBytesArray,payload_to,payload_value,payload_pubkeyHashasBytesArray);
-    }
-    //多签转账(其他人签名)
-    CreateMultisignatureToDeployforRuleOther(signTransaction,rawTransaction,transaction_pubkey,fromPubkeyStr,prikeyStr,signTransactionArray,fromArray){
-        return new Transaction().CreateMultisignatureToDeployforRuleOther(signTransaction,rawTransaction,transaction_pubkey,fromPubkeyStr,prikeyStr,signTransactionArray,fromArray);
-    }
-    //多签转账组装事务（用于广播）
-    CreateMultisignatureForTransferSplice(rawTransaction,fromArray,signTransactionArray,prikeyStr){
-        return new Transaction().CreateMultisignatureForTransferSplice(rawTransaction,fromArray,signTransactionArray,prikeyStr);
+    // //存证
+    // ClientToTransferProve(fromPubkeyStr,nonce,payloadbyte,prikeyStr){
+    //     return new Transaction().ClientToTransferProve(fromPubkeyStr,nonce,payloadbyte,prikeyStr);
+    // }
+    // //投票
+    // ClientToTransferVote(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr){
+    //     return new Transaction().ClientToTransferVote(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr);
+    // }
+    // //撤回投票
+    // ClientToTransferVoteWithdraw(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr,txid){
+    //     return new Transaction().ClientToTransferVoteWithdraw(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr,txid);
+    // }
+    // //抵押
+    // ClientToTransferMortgage(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr){
+    //     return new Transaction().ClientToTransferMortgage(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr);
+    // }
+    // //撤回抵押
+    // ClientToTransferMortgageWithdraw(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr,txid){
+    //    return new Transaction().ClientToTransferMortgageWithdraw(fromPubkeyStr,toPubkeyHashStr,amount,nonce,prikeyStr,txid);
+    // }
+    // //资产定义
+    // CreateSignToDeployforRuleAsset(fromPubkeyStr,nonce,prikeyStr,code,offering,owner,allowincrease,info){
+    //     return new Transaction().CreateSignToDeployforRuleAsset(fromPubkeyStr,nonce,prikeyStr,code,offering,owner,allowincrease,info);
+    // };
+    // //更换所有者公钥哈希
+    // CreateSignToDeployforAssetChangeowner(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,newOwnerPubkeyhash){
+    //     return new Transaction().CreateSignToDeployforAssetChangeowner(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,newOwnerPubkeyhash);
+    // }
+    // //资产转发
+    // CreateSignToDeployforRuleTransfer(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_from,payload_to,payload_amount){
+    //     return new Transaction().CreateSignToDeployforRuleTransfer(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_from,payload_to,payload_amount);
+    // }
+    // //增发
+    // CreateSignToDeployforRuleAssetIncreased(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_amount){
+    //     return new Transaction().CreateSignToDeployforRuleAssetIncreased(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_amount);
+    // }
+    // //部署哈希时间锁定
+    // CreateHashTimeBlockForDeploy(fromPubkeyStr,nonce,prikeyStr,payload_assetHexStr,payload_pubkeyHashHexStr){
+    //     return new Transaction().CreateHashTimeBlockForDeploy(fromPubkeyStr,nonce,prikeyStr,payload_assetHexStr,payload_pubkeyHashHexStr);
+    // }
+    // //哈希时间锁定转发资产
+    // CreateHashTimeBlockTransferForDeploy(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_value,payload_hashresult,payload_timestamp){
+    //     return new Transaction().CreateHashTimeBlockTransferForDeploy(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_value,payload_hashresult,payload_timestamp);
+    // }
+    // //哈希时间锁定获得锁定资产
+    // CreateHashTimeBlockGetForDeploy(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_transferhash,origintext){
+    //     return new Transaction().CreateHashTimeBlockGetForDeploy(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_transferhash,origintext);
+    // }
+    // //部署哈希高度锁定
+    // CreateHashHeightBlockForDeploy(fromPubkeyStr,nonce,prikeyStr,payload_assetHexStr,payload_pubkeyHashHexStr){
+    //     return new Transaction().CreateHashHeightBlockForDeploy(fromPubkeyStr,nonce,prikeyStr,payload_assetHexStr,payload_pubkeyHashHexStr);
+    // }
+    // //哈希高度锁定转发资产
+    // CreateHashHeightBlockTransferForDeploy(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_value,payload_hashresult,payload_height){
+    //     return new Transaction().CreateHashHeightBlockTransferForDeploy(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_value,payload_hashresult,payload_height);
+    // }
+    // //哈希高度锁定获得锁定资产
+    // CreateHashHeightBlockGetForDeploy(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_transferhash,origintext){
+    //     return new Transaction().CreateHashHeightBlockGetForDeploy(fromPubkeyStr,toPubkeyHashStr,nonce,prikeyStr,payload_transferhash,origintext);
+    // }
+    // //部署多签(签发者构建)
+    // CreateMultipleForRuleFirst(fromPubkeyStr,nonceNum,prikeyStr,payload_asset160hash,payload_m,payload_n,payload_pubkeyHashasBytesArray){
+    //     return new Transaction().CreateMultipleForRuleFirst(fromPubkeyStr,nonceNum,prikeyStr,payload_asset160hash,payload_m,payload_n,payload_pubkeyHashasBytesArray);
+    // }
+    // //部署多签(其他人签名)
+    // CreateMultipleToDeployforRuleOther(signTransaction,rawTransaction,transaction_pubkey,fromPubkeyStr,prikeyStr,signTransactionArray,fromArray){
+    //     return new Transaction().CreateMultipleToDeployforRuleOther(signTransaction,rawTransaction,transaction_pubkey,fromPubkeyStr,prikeyStr,signTransactionArray,fromArray);
+    // }
+    // //多签部署组装事务（用于广播）
+    // CreateMultipleForRuleSplice(rawTransaction,fromArray,signTransactionArray,prikeyStr){
+    //     return new Transaction().CreateMultipleForRuleSplice(rawTransaction,fromArray,signTransactionArray,prikeyStr);
+    // }
+    // //多签转账（签发者构建）
+    // CreateMultisignatureForTransferFirst(fromPubkeyStr,toPubkeyHashStr,nonceNum,prikeyStr,payload_origin,payload_dest,payload_fromBytesArray,payload_to,payload_value,payload_pubkeyHashasBytesArray){
+    //     return new Transaction().CreateMultisignatureForTransferFirst(fromPubkeyStr,toPubkeyHashStr,nonceNum,prikeyStr,payload_origin,payload_dest,payload_fromBytesArray,payload_to,payload_value,payload_pubkeyHashasBytesArray);
+    // }
+    // //多签转账(其他人签名)
+    // CreateMultisignatureToDeployforRuleOther(signTransaction,rawTransaction,transaction_pubkey,fromPubkeyStr,prikeyStr,signTransactionArray,fromArray){
+    //     return new Transaction().CreateMultisignatureToDeployforRuleOther(signTransaction,rawTransaction,transaction_pubkey,fromPubkeyStr,prikeyStr,signTransactionArray,fromArray);
+    // }
+    // //多签转账组装事务（用于广播）
+    // CreateMultisignatureForTransferSplice(rawTransaction,fromArray,signTransactionArray,prikeyStr){
+    //     return new Transaction().CreateMultisignatureForTransferSplice(rawTransaction,fromArray,signTransactionArray,prikeyStr);
+    // }
+    //定额条件比例支付部署
+    
+    //定额条件比例支付转入
+
+    //定额条件比例支付转出
+    Check() {
     }
 }
 

@@ -1179,37 +1179,42 @@ class Transaction
     //解析事务
     AnalysisTransaction(transaction){
         //版本号
-        let version=transaction.substr(0,2);
+        let version = transaction.substr(0,2);
+        //事务哈希
+        let hash = transaction.substr(2,64);
         //类型
-        let type=transaction.substr(2,2);
+        let type=transaction.substr(66,2);
         //Nonce 无符号64位
-        let nonce = transaction.substr(4,16);
-        //签发者公钥哈希 20字节
-        let fromPubkeyHash = transaction.substr(20,64);
+        let nonce = transaction.substr(68,16);
+        //签发者公钥 20字节
+        let fromPubkeyHash = transaction.substr(84,64);
         //gas单价  
-        let gasPrice = transaction.substr(84,16);
+        let gasPrice = transaction.substr(148,16);
         //转账金额 无符号64位
-        let Amount = transaction.substr(100,16);
+        let Amount = transaction.substr(164,16);
         //签名
-        let signull = transaction.substr(116,128);
+        let signull = transaction.substr(180,128);
         //接收者公钥哈希
-        let toPubkeyHash = transaction.substr(244,40);
-        //payloadlen
-        let payloadlen = transaction.substr(284,8);
-        //payload 类型
-        let payload_type = transaction.substr(292,2);
-        let payload_RLP = transaction.substr(294,transaction.length-250);
-        let payload_decoded = RLP.decode(Buffer.from(payload_RLP,'hex'));
+        let toPubkeyHash = transaction.substr(308,40);
+        // //payloadlen
+        // let payloadlen = transaction.substr(348,8);
+        // let payload_decoded = "";
+        // if(payloadlen*1 != 0){
+        //     //payload 类型
+        //     let payload_type = transaction.substr(292,2);
+        //     let payload_RLP = transaction.substr(294,transaction.length-250);
+        //     payload_decoded = RLP.decode(Buffer.from(payload_RLP,'hex'));
+        // }
         return {
             'version':version,
+            'hash':hash,
             'type':type,
             'nonce':nonce,
             'fromPubkeyHash':fromPubkeyHash,
             'gasPrice':gasPrice,
             'Amount':Amount,
             'signull':signull,
-            'toPubkeyHash':toPubkeyHash,
-            'payload_decoded':payload_decoded
+            'toPubkeyHash':toPubkeyHash
         }
     }
 
