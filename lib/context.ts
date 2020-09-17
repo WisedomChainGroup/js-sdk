@@ -212,7 +212,6 @@ enum ContextType {
     TX_HASH,
     CONTRACT_ADDRESS,
     CONTRACT_NONCE,
-    CONTRACT_CREATED_BY,
     ACCOUNT_NONCE,
     ACCOUNT_BALANCE,
     MSG_SENDER,
@@ -304,8 +303,7 @@ export class Transaction {
 export class Contract {
     constructor(
         readonly address: Address,
-        readonly nonce: u64,
-        readonly createdBy: Address
+        readonly nonce: u64
     ) {
     }
 }
@@ -412,8 +410,7 @@ export class Context {
     static contract(): Contract {
         return new Contract(
             new Address(getBytes(ContextType.CONTRACT_ADDRESS)),
-            getU64(ContextType.CONTRACT_NONCE),
-            new Address(getBytes(ContextType.CONTRACT_CREATED_BY))
+            getU64(ContextType.CONTRACT_NONCE)
         );
     }
 

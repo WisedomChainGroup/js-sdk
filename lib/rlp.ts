@@ -102,7 +102,7 @@ export class RLP {
                 return changetype<T>(new Address(RLP.decodeBytes(buf)));
         }
         assert(false, 'rlp encode failed, invalid type ' + nameof<T>());
-        return changetype<T>(null);
+        return changetype<T>(0);
     }
 
     // if the byte array was encoded from a list

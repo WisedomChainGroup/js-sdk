@@ -7,21 +7,13 @@
 </head>
 <body>
     <script src="./nacl.min.js"></script>
-    <script src="./hashes.js"></script>
+    <script src="./hashes.min.js"></script>
     <script src="./sha3.js"></script>
     <script src="./bn.js"></script>
     <script src="./contract.js"></script>
     <script>
         window.onload = function(){
-            const sk = '0c3b05f88b9ba890fe8e51eed905b139ff63c26043142012f54b09112dc9e57e'
-            const pk = '97922a034d663ea3c7de78e29e8310eb1e44b3170a8e1790ee6e70026544cad4'
-            const addr = '14zBnDtf8SqHjzVGYUupBtwnWWXx8Uqg3u'
-            const pkHash = '2bb915ea7402f8a7fc36409801f9e7788ed37481'
-            const t = window.contractTool
-            console.log(t.encodeHex(t.privateKey2PublicKey(sk)) == pk)
-            console.log(t.encodeHex(t.publicKey2Hash(pk)) == pkHash)
-            console.log(t.encodeHex(t.address2PublicKeyHash(addr)) == pkHash)
-            t.assertAddress(addr)
+            const tool = window.contractTool
         }
     </script>
 </body>

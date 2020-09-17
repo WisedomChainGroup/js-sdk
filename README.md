@@ -247,5 +247,247 @@ Response Body:
 
 
 
+## 智能合约
+
+### 编译、部署智能合约
+
+1. 编译智能合约需要node环境，并且确保安装了正确版本的 asc，如果没有安装，在你的项目的根目录的 pacakge.json 的 devDependencies 添加
+ ```"assemblyscript": "^0.14.10"``` ，并且执行 npm install
+
+2. 在你的项目根目录下新建一个文件命名为 coin.ts
+
+```ts
+/**
+ * erc 20 example in assembly script
+ */
+
+import { Util, U256, Globals, ABI_DATA_TYPE, ___idof } from 'node_modules/keystore_wdc/lib'
+import { Store } from 'node_modules/keystore_wdc/lib'
+import { Context, Address } from 'node_modules/keystore_wdc/lib'
+
+const _balance = Store.from<Address, U256>('balance');
+const _freeze = Store.from<Address, U256>('freeze');
+
+export function init(tokenName: string, symbol: string, totalSupply: U256, decimals: u64, owner: Address): Address {
+    // tokenName || symbol || totalSupply || decimals || owner
+    Globals.set<string>('tokenName', tokenName);
+    Globals.set<string>('symbol', symbol);
+    Globals.set<U256>('totalSupply', totalSupply);
+    Globals.set<u64>('decimals', decimals);
+    Globals.set<Address>('owner', owner);
+    _balance.set(owner, totalSupply);
+    return Context.self();
+}
+
+// display balance
+export function balanceOf(addr: Address): U256 {
+    return _balance.getOrDefault(addr, U256.ZERO);
+}
+
+export function freezeOf(addr: Address): U256 {
+    return _freeze.getOrDefault(addr, U256.ZERO);
+}
+
+export function tokenName(): string {
+    return Globals.get<string>('tokenName');
+}
+
+export function symbol(): string {
+    return Globals.get<string>('symbol');
+}
+
+export function decimals(): u64 {
+    return Globals.get<u64>('decimals');
+}
+
+export function totalSupply(): U256 {
+    return Globals.get<U256>('totalSupply');
+}
+
+export function owner(): Address {
+    return Globals.get<Address>('owner');
+}
+
+/* Send coins */
+export function transfer(to: Address, amount: U256): void {
+    const msg = Context.msg();
+    assert(amount > U256.ZERO, 'amount is not positive');
+    let b = balanceOf(msg.sender)
+    assert(b >= amount, 'balance is not enough');
+    _balance.set(to, balanceOf(to) + amount);
+    _balance.set(msg.sender, balanceOf(msg.sender) - amount);
+    Context.emit<Transfer>(new Transfer(msg.sender, to, amount));
+}
+
+// 冻结
+export function freeze(amount: U256): void {
+    const msg = Context.msg();
+    assert(balanceOf(msg.sender) >= amount, 'balance is not enough');
+    _balance.set(msg.sender, balanceOf(msg.sender) - amount);
+    _freeze.set(msg.sender, freezeOf(msg.sender) + amount);
+    Context.emit<Freeze>(new Freeze(msg.sender, amount));
+}
+
+// 解冻
+export function unfreeze(amount: U256): void {
+    const msg = Context.msg();
+    assert(freezeOf(msg.sender) >= amount, 'freeze is not enough');
+    _freeze.set(msg.sender, freezeOf(msg.sender) - amount);
+    _balance.set(msg.sender, balanceOf(msg.sender) + amount);
+    Context.emit<Unfreeze>(new Unfreeze(msg.sender, amount));
+}
+
+/* Allow another contract to spend some tokens in your behalf */
+export function approve(to: Address, amount: U256): void {
+    const msg = Context.msg();
+    assert(amount > U256.ZERO, 'amount is not positive');
+    _setAllowanceOf(msg.sender, to, amount);
+    Context.emit<Approve>(new Approve(msg.sender, to, amount));
+}
+
+export function allowanceOf(from: Address, sender: Address): U256 {
+    const db = getAllowanceDB(from);
+    return db.getOrDefault(sender, U256.ZERO);
+}
+
+/* A contract attempts to get the coins */
+export function transferFrom(from: Address, to: Address, amount: U256): void {
+    const msg = Context.msg();
+    assert(amount > U256.ZERO, 'amount is not positive');
+    const allowance = allowanceOf(from, msg.sender);
+    const balance = balanceOf(from);
+    assert(balance >= amount, 'balance is not enough');
+    assert(allowance >= amount, 'allowance is not enough');
+    _setAllowanceOf(from, msg.sender, allowanceOf(from, msg.sender) - amount);
+    _balance.set(from, balanceOf(from) - amount);
+    _balance.set(to, balanceOf(to) + amount);
+    Context.emit<Transfer>(new Transfer(from, to, amount));
+}
+
+// 许可金
+function getAllowanceDB(addr: Address): Store<Address, U256> {
+    const prefix = Util.concatBytes(Util.str2bin('allowance'), addr.buf);
+    return new Store<Address, U256>(prefix);
+}
 
 
+function _setAllowanceOf(from: Address, msgSender: Address, amount: U256): void {
+    const db = getAllowanceDB(from);
+    db.set(msgSender, amount);
+}
+
+// 所有合约的主文件必须声明此函数
+export function __idof(type: ABI_DATA_TYPE): u32 {
+    return ___idof(type);
+}
+
+@unmanaged
+class Approve {
+    constructor(
+        readonly from: Address,
+        readonly sender: Address,
+        readonly amount: U256) {
+    }
+}
+
+@unmanaged class Transfer {
+    constructor(readonly from: Address, readonly to: Address, readonly value: U256) { }
+}
+
+@unmanaged class Freeze {
+    constructor(readonly from: Address, readonly value: U256) { }
+}
+
+@unmanaged class Unfreeze {
+    constructor(readonly from: Address, readonly value: U256) { }
+}
+```
+
+2. 在你的项目根目录下新建一个 deploy.js文件，编写部署脚本
+
+```js
+
+const sk = '****' // 填写你的私钥
+const addr = '****' // 填写你的地址
+const tool = (require('keystore_wdc')).contractTool() // 
+
+const contract = new tool.Contract()
+
+// 用于构造合约事务
+const builder = new tool.TransactionBuilder(/* 事务默认版本号 */1, sk, /*gas限制，填写0不限制gas*/0, /*gas单价*/ 200000)
+// 这里是 asc 的路径，
+const ascPath = 'node_modules/.bin/asc';
+
+// 用于调用节点 rpc
+const rpc = new tool.RPC('localhost', 19585)
+
+async function deploy(){
+   const contract = new tool.Contract()
+   // 编译合约得到字节码
+   contract.binary = await tool.compileContract(ascPath, 'coin.ts')
+   // 编译得到 abi
+   contract.abi = tool.compileABI(fs.readFileSync('coin.ts'))
+   // 写入 abi，便于以后使用
+   fs.writeFileSync('coin.abi.json', JSON.stringify(contract.abi))
+
+   // 获取 nonce，填入 builder，这样 builder 生成的事务都是签名过的事务
+   builder.nonce = (await rpc.getNonce(addr)) + 1
+   // 生成合约部署的事务
+   let tx = builder.buildDeploy(contract, {
+      tokenName: 'doge',
+      symbol: 'DOGE',
+      totalSupply: '90000000000000000',
+      decimals: 8,
+      owner: addr
+   }, 0)
+   // 也可以用 tx.sign(sk) 手动进行签名
+
+   // 部署的合约地址可以根据事务哈希值计算得到
+   console.log(tool.getContractAddress(tx.getHash()))
+
+   // 发送事务并等待事务打包进入区块
+   console.dir(await rpc.sendAndObserve(tx, tool.TX_STATUS.INCLUDED), {depth: null})
+   // 也可以直接发送，不等待事务打包 rpc.sendTransaction(tx)
+}
+```
+
+3. 合约部署后，可以查看合约中的方法
+
+```js
+const contractAddr = '****' // 这里填合约部署后生成的地址
+const abi = require('./coin.abi.json') // 部署合约时生成的 abi 
+const tool = (require('keystore_wdc')).contractTool() 
+const sk = '****' // 填写你的私钥
+const yourAddress = '****' // 填写你的地址
+
+// 用于构造合约事务
+const builder = new tool.TransactionBuilder(/* 事务默认版本号 */1, sk, /*gas限制，填写0不限制gas*/0, /*gas单价*/ 200000)
+
+// 用于调用节点 rpc
+const rpc = new tool.RPC('localhost', 19585)
+
+async function viewBalance(){
+   const contract = new tool.Contract(contractAddr, abi)
+   // 构造合约转账事务
+   let tx = builder.buildContractCall(contract, 'transfer', ['14zBnDtf8SqHjzVGYUupBtwnWWXx8Uqg3u', 100000000])
+   // 设置 nonce
+   tx.nonce = (await rpc.getNonce(yourAddress)) + 1 // 这里的 nonce 可以从节点获取 
+   tx.sign(sk)
+   console.dir(await rpc.sendAndObserve(tx, tool.TX_STATUS.INCLUDED), {depth: null})
+}
+```
+
+4. 合约部署后，也可以调用合约中的方法构造事务
+
+
+```js
+const contractAddr = '****' // 这里填合约部署后生成的地址
+const abi = require('./coin.abi.json') // 部署合约时生成的 abi 
+const tool = (require('keystore_wdc')).contractTool() 
+// 用于调用节点 rpc
+
+async function viewBalance(){
+   const contract = new tool.Contract(contractAddr, abi)
+   let tx = 
+}
+```

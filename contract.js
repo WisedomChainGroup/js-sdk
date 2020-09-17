@@ -23,17 +23,22 @@
     const RMD160 = isBrowser ? (new this.Hashes.RMD160) : (new (require('./hashes.js').RMD160))
     RMD160.setUTF8(false)
 
-    function compareBytes(a, b){
-        if(a.length > b.length)
+    /**
+     * 比较两个字节数组
+     * @param {Uint8Array} a 
+     * @param {Uint8Array} b 
+     */
+    function compareBytes(a, b) {
+        if (a.length > b.length)
             return 1
-        if(b.length > a.length)
+        if (b.length > a.length)
             return -1
-        for(let i = 0; i < a.length; i++){
+        for (let i = 0; i < a.length; i++) {
             const ai = a[i]
             const bi = b[i]
-            if(ai > bi)
+            if (ai > bi)
                 return 1
-            if(bi > ai)
+            if (bi > ai)
                 return -1
         }
         return 0
@@ -42,7 +47,8 @@
     // base58 编码
     const base58 = base('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz')
 
-    class strWrapper {
+    // rmd 不支持对 Uint8Array 进行哈希值计算，需要把 Uint8Array 类型伪装成字符串
+    class FakeString {
         constructor(u8) {
             this.u8 = u8
             this.length = u8.length
@@ -53,19 +59,21 @@
         }
     }
 
-    // rmd 不支持对 Uint8Array 进行哈希值计算，需要把 Uint8Array 类型转成 strWrapper 字符串
     /**
-     * 
+     * rmd160 哈希值计算
      * @param {Uint8Array} o 
      * @returns {Uint8Array}
      */
     function rmd160(o) {
         assert(isBytes(o), 'o is not byte array')
-        return decodeHex(RMD160.hex(new strWrapper(o)))
+        return decodeHex(RMD160.hex(new FakeString(o)))
     }
 
 
-
+    /**
+     * base58 编码工具
+     * @param {string} ALPHABET 
+     */
     function base(ALPHABET) {
         var ALPHABET_MAP = {}
         var BASE = ALPHABET.length
@@ -167,9 +175,12 @@
      * @returns {Uint8Array}
      */
     function privateKey2PublicKey(privateKey) {
+        privateKey = decodeHex(privateKey)
         if (isBytes(privateKey))
             privateKey = toU8Arr(privateKey)
-        const pair = new nacl.sign.keyPair.fromSeed(decodeHex(privateKey))
+        if (privateKey.length === 64)
+            privateKey = privateKey.slice(32)
+        const pair = new nacl.sign.keyPair.fromSeed(privateKey)
         return pair.publicKey
     }
 
@@ -199,6 +210,30 @@
     }
 
     /**
+     * 公钥哈希转地址
+     * @param { Uint8Array } sk
+     *  
+     */
+    function publicKeyHash2Address(hash){
+        let r2 = concatBytes(new Uint8Array([0]), hash)
+        let r3 = digest(digest(hash))
+        let b4 = r3.slice(0, 4)
+        let b5 = concatBytes(r2, b4)
+        return base58.encode(b5)
+    }
+
+    /**
+     * 32 字节私钥转成 64字节私钥
+     * @param {string} sk 
+     */
+    function extendPrivateKey(sk) {
+        sk = decodeHex(sk)
+        if (sk.length === 64)
+            return sk
+        return concatBytes(sk, privateKey2PublicKey(sk))
+    }
+
+    /**
      * 断言正确的地址
      * @param {string} address 
      */
@@ -210,10 +245,10 @@
             throw new Error('address should starts with 1, WX or WR')
         }
 
-        if(address.startsWith('WX') || address.startsWith('WR'))
+        if (address.startsWith('WX') || address.startsWith('WR'))
             address = address.substr(2)
 
-        let _r5 = base58.decode(address); 
+        let _r5 = base58.decode(address);
 
         let a = address2PublicKeyHash(address)
         let c = digest(a)
@@ -226,20 +261,20 @@
     }
 
     /**
-     * 转成公钥哈希
+     * 公钥、地址、或者公钥哈希 转成公钥哈希
      * @param {string | Uint8Array | ArrayBuffer} 地址、公钥或者公钥哈希
-     * @returns 
+     * @returns  {Uint8Array} 
      */
     function normalizeAddress(addr) {
-        if (isHex(addr))
+        if (typeof addr === 'string' && isHex(addr))
             addr = decodeHex(addr)
         if (isBytes(addr)) {
             addr = toU8Arr(addr)
             // 公要哈希 20 个字节
-            if (addr.length == 20)
+            if (addr.length === 20)
                 return addr
             // 32 字节的是公钥 转成公钥哈希
-            if (addr.length == 32)
+            if (addr.length === 32)
                 return publicKey2Hash(addr)
             throw new Error(`invalid size ${addr.length}`)
         }
@@ -260,11 +295,10 @@
         return new Uint8Array(hasher.arrayBuffer())
     }
 
-
-    const crypto = isBrowser ? null : require('crypto')
     const http = isBrowser ? null : require('http')
     const child_process = isBrowser ? null : require('child_process');
 
+    // 事务的所有状态
     const TX_STATUS = {
         PENDING: 0,
         INCLUDED: 1,
@@ -278,7 +312,7 @@
     }
 
     /**
-     * 转成安全范围内的整数
+     * 转成安全范围内的整数，如果不是安全范围内，用字符串表示
      * @param {string | number | ArrayBuffer | Uint8Array | BN }
      * @returns { string | number}
      */
@@ -299,19 +333,6 @@
         return x.toString()
     }
 
-    /**
-     * 随机生成字节数组 Uint8Array
-     * @param {number} length 字节数组长度
-     * @return {Uint8Array}
-     */
-    function randomBytes(length) {
-        if (!isBrowser)
-            return crypto.randomBytes(length)
-
-        const ret = new Uint8Array(length);
-        window.crypto.getRandomValues(ret);
-        return ret
-    }
 
     const assert = this['assert'] ? this['assert'] : (truth, msg) => {
         if (!truth)
@@ -374,7 +395,7 @@
     }
 
     /**
-     * 判断是否是合法的十六进制字符串，不能以 0x 开头
+     * 判断是否是合法的十六进制字符串
      * @param {string} hex
      * @returns {boolean}
      */
@@ -524,7 +545,7 @@
     }
 
     /**
-     *
+     * abi 解码
      * @param {Array<TypeDef>} outputs
      * @param {string | ArrayBuffer | Array<Uint8Array> | Uint8Array} buf
      */
@@ -553,10 +574,11 @@
             let val
             switch (t) {
                 case ABI_DATA_TYPE.BYTES:
-                case ABI_DATA_TYPE.ADDRESS: {
                     val = encodeHex(arr[i])
+                    break   
+                case ABI_DATA_TYPE.ADDRESS: 
+                    val = publicKeyHash2Address(arr[i]) 
                     break
-                }
                 case ABI_DATA_TYPE.U256:
                 case ABI_DATA_TYPE.U64: {
                     val = new BN(arr[i], 'be')
@@ -601,6 +623,9 @@
         return ret
     }
 
+    /**
+     * 事务
+     */
     class Transaction {
         /**
          * constructor of transaction
@@ -684,9 +709,19 @@
                 convert(this.gasPrice || '0', ABI_DATA_TYPE.U256),
                 convert(this.amount || '0', ABI_DATA_TYPE.U256),
                 convert(this.payload || EMPTY_BYTES, ABI_DATA_TYPE.BYTES),
-                convert(this.to || EMPTY_BYTES, ABI_DATA_TYPE.ADDRESS),
+                decodeHex(this.to),
                 convert(this.signature || EMPTY_BYTES, ABI_DATA_TYPE.BYTES)
             ]
+        }
+
+        /**
+         * 签名
+         * @param {string | Uint8Array | ArrayBuffer } sk 私钥
+         */
+        sign(sk) {
+            sk = decodeHex(sk)
+            sk = extendPrivateKey(sk)
+            this.signature = encodeHex(nacl.sign(this.getRaw(true), sk).slice(0, 64))
         }
 
         __setInputs(__inputs) {
@@ -716,23 +751,17 @@
 
         getMethod() {
             const t = parseInt(this.type)
-            return t === constants.DEPLOY ? 'init' : bin2str((RLP.decode(decodeHex(this.payload)))[1])
+            return t === constants.WASM_DEPLOY ? 'init' : bin2str((RLP.decode(decodeHex(this.payload)))[1])
         }
 
         isDeployOrCall() {
             const t = parseInt(this.type)
-            return t === constants.DEPLOY || t === constants.CONTRACT_CALL
-        }
-
-        isBuiltInCall() {
-            return this.isDeployOrCall() &&
-                (this.to === constants.PEER_AUTHENTICATION_ADDR || this.to === constants.POA_AUTHENTICATION_ADDR
-                    || this.to == constants.POS_CONTRACT_ADDR)
+            return t === constants.WASM_DEPLOY || t === constants.WASM_CALL
         }
     }
 
     /**
-     *
+     * 判断是否是二进制字节数组
      * @param s
      * @returns {boolean}
      */
@@ -1235,10 +1264,10 @@
                 case ABI_DATA_TYPE.STRING: {
                     throw new Error('cannot convert uint8array to string')
                 }
+                case ABI_DATA_TYPE.BYTES:
+                    return o
                 case ABI_DATA_TYPE.ADDRESS:
-                case ABI_DATA_TYPE.BYTES: {
                     return normalizeAddress(o)
-                }
             }
             throw new Error("unexpected abi type " + type)
         }
@@ -1736,14 +1765,14 @@
             const params = contract.abiEncode(method, parameters)
 
             return this.__wsRpc(WS_CODES.CONTRACT_QUERY, [
-                decodeHex(addr),
+                normalizeAddress(addr),
                 method,
                 params
             ]).then(r => contract.abiDecode(method, r))
         }
 
         /**
-         * 发送事务
+         * 通过 websocket 发送事务
          * @param tx {Transaction | Array<Transaction> }事务
          * @returns {Promise<Object>}
          */
@@ -1754,10 +1783,11 @@
         /**
          *
          * @param { Transaction } tx
+         * @param status
          * @param { number } timeout
          */
         observe(tx, status, timeout) {
-            status = status || TX_STATUS.CONFIRMED
+            status = status === undefined ? TX_STATUS.CONFIRMED : status
             return new Promise((resolve, reject) => {
                 let success = false
 
@@ -1778,7 +1808,7 @@
                         return
                     }
                     if (s === TX_STATUS.CONFIRMED) {
-                        if (status == TX_STATUS.INCLUDED)
+                        if (status === TX_STATUS.INCLUDED)
                             return
                         confirmed = true
                         if (included) {
@@ -1797,7 +1827,7 @@
                         if (d.result && d.result.length
                             && tx.__abi
                             && tx.isDeployOrCall()
-                            && (!tx.isBuiltInCall())) {
+                        ) {
                             const decoded = (new Contract('', tx.__abi)).abiDecode(tx.getMethod(), d.result)
                             ret.result = decoded
                         }
@@ -1814,14 +1844,14 @@
                             ret.events = events
                         }
 
-                        ret.transactionHash = tx.getHash()
+                        ret.transactionHash = encodeHex(tx.getHash())
                         ret.fee = toSafeInt((new BN(tx.gasPrice).mul(new BN(ret.gasUsed))))
                         if (tx.isDeployOrCall()) {
                             ret.method = tx.getMethod()
                             ret.inputs = tx.__inputs
                         }
 
-                        if (status == TX_STATUS.INCLUDED) {
+                        if (status === TX_STATUS.INCLUDED) {
                             success = true
                             resolve(ret)
                             return
@@ -1830,7 +1860,6 @@
                         if (confirmed) {
                             success = true
                             resolve(ret)
-                            return
                         }
                     }
                 })
@@ -1887,38 +1916,19 @@
             return getTransaction(this.host, this.port, hash)
         }
 
-        /**
-         * 查看账户
-         * @param pkOrAddress {string} 公钥或者地址
-         * @returns {Promise<Object>}
-         */
-        getAccount(pkOrAddress) {
-            let d = decodeHex(pkOrAddress)
-            if (d.length != 20)
-                d = decodeHex(publicKey2Address(d))
-            return this.__wsRpc(WS_CODES.ACCOUNT_QUERY, d)
-                .then(resp => {
-                    const decoded = resp
-                    const a = {
-                        address: encodeHex(decoded[0]),
-                        nonce: toSafeInt(decoded[1]),
-                        balance: toSafeInt(decoded[2]),
-                        createdBy: encodeHex(decoded[3]),
-                        contractHash: encodeHex(decoded[4]),
-                        storageRoot: encodeHex(decoded[5])
-                    }
-                    return a
-                })
-        }
 
         /**
          * 获取 nonce
-         * @param pkOrAddress {string} 公钥或者地址
+         * @param pkOrAddress {string | Uint8Array | ArrayBuffer } 公钥或者地址
          * @returns {Promise<string>}
          */
         getNonce(pkOrAddress) {
-            return this.getAccount(pkOrAddress)
-                .then(a => a.nonce)
+            pkOrAddress = normalizeAddress(pkOrAddress)
+            return this.__wsRpc(WS_CODES.ACCOUNT_QUERY, pkOrAddress)
+                .then(resp => {
+                    const decoded = resp
+                    return toSafeInt(new BN(decoded[0][2], 'be'))
+                })
         }
 
         close() {
@@ -1929,6 +1939,7 @@
             }
         }
     }
+
 
     class TransactionBuilder {
         /**
@@ -1980,7 +1991,7 @@
             else
                 parameters = [[], [], []]
 
-            const ret = this.buildCommon(constants.DEPLOY, amount, RLP.encode([this.gasLimit || 0, binary, parameters, contract.abiToBinary()]), '')
+            const ret = this.buildCommon(constants.WASM_DEPLOY, amount, RLP.encode([this.gasLimit || 0, binary, parameters, contract.abiToBinary()]), new Uint8Array(20))
             ret.__abi = contract.abi
             ret.__setInputs(inputs)
             return ret
@@ -2007,10 +2018,11 @@
             parameters = normalizeParams(parameters)
             const inputs = parameters
 
-            const addr = contract.address
+            
+            const addr = normalizeAddress(contract.address)
             parameters = contract.abiEncode(method, parameters)
 
-            const ret = this.buildCommon(constants.CONTRACT_CALL, amount, RLP.encode([this.gasLimit || 0, method, parameters]), addr)
+            const ret = this.buildCommon(constants.WASM_CALL, amount, RLP.encode([this.gasLimit || 0, method, parameters]), encodeHex(addr))
             ret.__abi = contract.abi
             ret.__setInputs(inputs)
             return ret
@@ -2039,7 +2051,7 @@
             if (this.nonce) {
                 ret.nonce = asDigitalNumberText(this.nonce)
                 this.increaseNonce()
-                this.sign(ret)
+                ret.sign(this.sk)
             }
 
             return ret
@@ -2147,19 +2159,15 @@
 
 
     /**
-     * 生成合约地址
-     * @param address {string | Uint8Array} 合约创建者的地址
+     * 计算合约地址
+     * @param hash {string | Uint8Array} 事务的哈希值
      * @param nonce {string | number | BN} 事务的 nonce
      * @returns {string} 合约的地址
      */
-    function getContractAddress(address, nonce) {
-        nonce = nonce ? nonce : 0
-        address = convert(address, ABI_DATA_TYPE.ADDRESS)
-        if (address.length != 20)
-            throw new Error(`address length should be 20 while ${address.length} found`)
-        let buf = RLP.encode([address, convert(nonce, ABI_DATA_TYPE.U64)])
-        buf = decodeHex(sm3(buf), 'hex')
-        return encodeHex(buf.slice(buf.length - 20, buf.length))
+    function getContractAddress(hash) {
+        let buf = RLP.encode([decodeHex(hash), 0])
+        buf = rmd160(buf)
+        return publicKeyHash2Address(buf)
     }
 
     const tool = {
@@ -2170,7 +2178,14 @@
         rmd160: rmd160,
         address2PublicKeyHash: address2PublicKeyHash,
         assertAddress: assertAddress,
-        TransactionBuilder: TransactionBuilder
+        TransactionBuilder: TransactionBuilder,
+        RPC: RPC,
+        compileContract: compileContract,
+        compileABI: compileABI,
+        getContractAddress: getContractAddress,
+        Contract: Contract,
+        TX_STATUS: TX_STATUS,
+        publicKeyHash2Address: publicKeyHash2Address
     }
 
     if (!isBrowser)
@@ -2261,6 +2276,15 @@
         }
         return ret
     }
+
+
+    function uuidv4() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
 
 })();
 

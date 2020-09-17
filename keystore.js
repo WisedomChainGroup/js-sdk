@@ -547,6 +547,10 @@ class KeyStore {
     //定额条件比例支付转出
     Check() {
     }
+
+    static contractTool(){
+        return require('./contract')
+    }
 }
 
 module.exports = KeyStore;
