@@ -457,6 +457,25 @@ async function deploy(){
 const contractAddr = '****' // 这里填合约部署后生成的地址
 const abi = require('./coin.abi.json') // 部署合约时生成的 abi 
 const tool = (require('keystore_wdc')).contractTool() 
+
+// 用于构造合约事务
+
+// 用于调用节点 rpc
+const rpc = new tool.RPC('localhost', 19585)
+
+async function viewBalance(){
+   const contract = new tool.Contract(contractAddr, abi)
+   console.log(await rpc.viewContract(contract, 'balanceOf', ['14zBnDtf8SqHjzVGYUupBtwnWWXx8Uqg3u']))
+}
+```
+
+4. 合约部署后，也可以调用合约中的方法构造事务
+
+
+```js
+const contractAddr = '****' // 这里填合约部署后生成的地址
+const abi = require('./coin.abi.json') // 部署合约时生成的 abi 
+const tool = (require('keystore_wdc')).contractTool() 
 const sk = '****' // 填写你的私钥
 const yourAddress = '****' // 填写你的地址
 
@@ -474,20 +493,5 @@ async function viewBalance(){
    tx.nonce = (await rpc.getNonce(yourAddress)) + 1 // 这里的 nonce 可以从节点获取 
    tx.sign(sk)
    console.dir(await rpc.sendAndObserve(tx, tool.TX_STATUS.INCLUDED), {depth: null})
-}
-```
-
-4. 合约部署后，也可以调用合约中的方法构造事务
-
-
-```js
-const contractAddr = '****' // 这里填合约部署后生成的地址
-const abi = require('./coin.abi.json') // 部署合约时生成的 abi 
-const tool = (require('keystore_wdc')).contractTool() 
-// 用于调用节点 rpc
-
-async function viewBalance(){
-   const contract = new tool.Contract(contractAddr, abi)
-   let tx = 
 }
 ```
