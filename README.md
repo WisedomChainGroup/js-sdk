@@ -252,7 +252,7 @@ Response Body:
 ### 编译、部署智能合约
 
 1. 编译智能合约需要node环境，并且确保安装了正确版本的 asc，如果没有安装，在你的项目的根目录的 pacakge.json 的 devDependencies 添加
- ```"assemblyscript": "^0.14.10"``` ，并且执行 npm install
+ ```"assemblyscript": "^0.14.10"``` ，并且执行 npm install，node 环境使用 tool.RPC 需要安装 websocket，npm install ws --save-dev
 
 2. 在你的项目根目录下新建一个文件命名为 coin.ts
 
