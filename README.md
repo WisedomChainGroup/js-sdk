@@ -408,7 +408,7 @@ class Approve {
 ```js
 const sk = '****'
 const addr = '****'
-const tool = (require('keystore_wdc')).contractTool() // 
+const tool = require('keystore_wdc/contract') // 
 const fs = require('fs')
 
 // 用于构造合约事务
@@ -456,7 +456,7 @@ deploy().catch(console.error)
 ```js
 const contractAddr = '****' // 这里填合约部署后生成的地址
 const abi = require('./coin.abi.json') // 部署合约时生成的 abi 
-const tool = (require('keystore_wdc')).contractTool() 
+const tool = require('keystore_wdc/contract')
 
 // 用于构造合约事务
 
@@ -475,7 +475,7 @@ async function viewBalance(){
 ```js
 const contractAddr = '****' // 这里填合约部署后生成的地址
 const abi = require('./coin.abi.json') // 部署合约时生成的 abi 
-const tool = (require('keystore_wdc')).contractTool() 
+const tool = require('keystore_wdc/contract')
 const sk = '****' // 填写你的私钥
 const yourAddress = '****' // 填写你的地址
 

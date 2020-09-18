@@ -211,10 +211,10 @@
 
     /**
      * 公钥哈希转地址
-     * @param { Uint8Array } sk
+     * @param { Uint8Array } hash
      *  
      */
-    function publicKeyHash2Address(hash){
+    function publicKeyHash2Address(hash) {
         let r2 = concatBytes(new Uint8Array([0]), hash)
         let r3 = digest(digest(hash))
         let b4 = r3.slice(0, 4)
@@ -575,9 +575,9 @@
             switch (t) {
                 case ABI_DATA_TYPE.BYTES:
                     val = encodeHex(arr[i])
-                    break   
-                case ABI_DATA_TYPE.ADDRESS: 
-                    val = publicKeyHash2Address(arr[i]) 
+                    break
+                case ABI_DATA_TYPE.ADDRESS:
+                    val = publicKeyHash2Address(arr[i])
                     break
                 case ABI_DATA_TYPE.U256:
                 case ABI_DATA_TYPE.U64: {
@@ -655,8 +655,8 @@
             this.__inputs = __inputs
         }
 
-        static from(o) {
-            return new Transaction(o.version, o.type, o.createdAt, o.nonce, o.from, o.gasLimit, o.gasPrice, o.amount, o.payload, o.to, o.signature)
+        static clone(o) {
+            return new Transaction(o.version, o.type, o.nonce, o.from, o.gasPrice, o.amount, o.payload, o.to, o.signature)
         }
 
         /**
@@ -669,7 +669,7 @@
 
         /**
          * 生成事务签名或者哈希值计算需要的原文
-         * @param {boolean}} nullSig 
+         * @param {boolean} nullSig
          * @returns {Uint8Array}
          */
         getRaw(nullSig) {
@@ -1654,10 +1654,11 @@
          * @returns {number} 监听器的 id
          */
         __listen(contract, event, func) {
-            const addr = decodeHex(contract.address)
+            const addr = normalizeAddress(contract.address)
+            const addrHex = encodeHex(addr)
             this.__wsRpc(WS_CODES.EVENT_SUBSCRIBE, addr)
             const id = ++this.__cid
-            const key = `${contract.address}:${event}`
+            const key = `${addrHex}:${event}`
             this.__id2key.set(id, key)
             const fn = (_, event, parameters) => {
                 const abiDecoded = contract.abiDecode(event, parameters, ABI_TYPE.EVENT)
@@ -1920,7 +1921,7 @@
         /**
          * 获取 nonce
          * @param pkOrAddress {string | Uint8Array | ArrayBuffer } 公钥或者地址
-         * @returns {Promise<string>}
+         * @returns {Promise<string | number>}
          */
         getNonce(pkOrAddress) {
             pkOrAddress = normalizeAddress(pkOrAddress)
@@ -2018,7 +2019,7 @@
             parameters = normalizeParams(parameters)
             const inputs = parameters
 
-            
+
             const addr = normalizeAddress(contract.address)
             parameters = contract.abiEncode(method, parameters)
 
