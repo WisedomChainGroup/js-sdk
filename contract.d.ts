@@ -178,6 +178,7 @@ declare interface TransactionResult{
     blockHash: string;
     gasUsed: string | number;
     events?: Array<Event>;
+    result?: Readable;
     transactionHash: string;
     fee: string | number;
     method?: string;
