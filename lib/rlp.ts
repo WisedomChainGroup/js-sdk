@@ -1,4 +1,4 @@
-import { U256, Address, log } from '.'
+import { U256, Address, log, Context, ABI_DATA_TYPE } from '.'
 import { Util } from './util';
 const OFFSET_SHORT_LIST: u8 = 0xc0;
 
@@ -44,6 +44,60 @@ export class RLP {
         if (isString<T>()) {
             return RLP.encodeString(changetype<string>(t));
         }
+        if(!isManaged<T>()){
+            const name = nameof<T>();
+            const abi = RLPList.fromEncoded(Context.self().abi());
+            log('rlp encode: offset of ' + name + ' is ' + offsetof<T>().toString());
+            for (let i: u32 = 0; i < abi.length(); i++) {
+                const li = abi.getList(i);
+                if (li.getItem(0).string() == name && li.getItem(1).u64() == 1) {
+                    const outputs = li.getList(3);
+                    const data = new Array<ArrayBuffer>();
+                    let offset = 0;
+                    let ptr = changetype<usize>(t)
+                    for (let j: u32 = 0; j < outputs.length(); j++) {
+                        switch (outputs.getItem(j).u32()) {
+                            case ABI_DATA_TYPE.BOOL:{
+                                assert(false, 'bool is not stable in unmanaged runtime');
+                            }
+                            case ABI_DATA_TYPE.F64:
+                            case ABI_DATA_TYPE.I64:
+                            case ABI_DATA_TYPE.U64:{
+                                assert(false, 'native number is not stable in unmanaged runtime');
+                                break;
+                            }
+                            case ABI_DATA_TYPE.BYTES: {
+                                data.push(RLP.encodeBytes(load<ArrayBuffer>(ptr + offset)));
+                                offset += 4;
+                                break;
+                            }
+                            case ABI_DATA_TYPE.STRING: {
+                                data.push(RLP.encodeString(load<string>(ptr + offset)));
+                                offset += 4;
+                                break;
+                            }
+                            case ABI_DATA_TYPE.U256: {
+                                data.push(RLP.encodeU256(load<U256>(ptr + offset)));
+                                offset += 4;
+                                break;
+                            }
+                            case ABI_DATA_TYPE.ADDRESS: {
+                                data.push(RLP.encode<Address>(load<Address>(ptr + offset)));
+                                offset += 4;
+                                break;
+                            }
+                            default:
+                                assert(false, ' invalid abi type ' + outputs.getItem(j).u32().toString());
+                        }
+                    }
+                    const buf = RLP.encodeElements(data);
+                    return buf;
+                }
+            }
+            assert(false, 'rlp encode ' + name + ' failed, abi not found');  
+            return new ArrayBuffer(0);          
+        }
+
         switch (idof<T>()) {
             case idof<ArrayBuffer>():
                 return RLP.encodeBytes(changetype<ArrayBuffer>(t));
@@ -52,6 +106,7 @@ export class RLP {
             case idof<Address>():
                 return RLP.encodeBytes(changetype<Address>(t).buf)
         }
+
         assert(false, 'rlp encode failed, invalid type ' + nameof<T>());
         return new ArrayBuffer(0);
     }
@@ -93,6 +148,63 @@ export class RLP {
         if (isString<T>()) {
             return changetype<T>(RLP.decodeString(buf));
         }
+
+        if(!isManaged<T>()){
+            const name = nameof<T>();
+            const p = __alloc(offsetof<T>(), 0);
+            __retain(p);
+            const abi = RLPList.fromEncoded(Context.self().abi());
+            const rlp = RLPList.fromEncoded(buf);
+            log('rlp decode: offset of ' + name + ' is ' + offsetof<T>().toString());
+
+            for (let i: u32 = 0; i < abi.length(); i++) {
+                const li = abi.getList(i);
+                if (li.getItem(0).string() == name && li.getItem(1).u64() == 1) {
+                    const outputs = li.getList(3);
+                    let offset = 0;
+                    for (let j: u32 = 0; j < outputs.length(); j++) {
+                        switch (outputs.getItem(j).u32()) {
+                            case ABI_DATA_TYPE.BOOL:{
+                                assert(false, 'bool is not stable in runtime, please convert to string');
+                                break;
+                            }
+                            case ABI_DATA_TYPE.F64:
+                            case ABI_DATA_TYPE.I64:
+                            case ABI_DATA_TYPE.U64:{
+                                assert(false, 'native number is not stable in unmanaged runtime, please convert to string');
+                                break;
+                            }
+                            case ABI_DATA_TYPE.BYTES: {
+                                store<ArrayBuffer>(p + offset, rlp.getItem(j).bytes());
+                                offset += 4;
+                                break;
+                            }
+                            case ABI_DATA_TYPE.STRING: {
+                                store<String>(p + offset, rlp.getItem(j).string());
+                                offset += 4;
+                                break;
+                            }
+                            case ABI_DATA_TYPE.U256: {
+                                store<U256>(p + offset, rlp.getItem(j).u256());
+                                offset += 4;
+                                break;
+                            }
+                            case ABI_DATA_TYPE.ADDRESS: {
+                                store<Address>(p + offset, rlp.getItem(j).address());
+                                offset += 4;
+                                break;
+                            }
+                            default:
+                                assert(false, ' invalid abi type ' + outputs.getItem(j).u32().toString());
+                        }
+                    }
+                    return changetype<T>(p);
+                }                
+            }
+            assert(false, 'rlp decode failed, invalid type ' + nameof<T>());
+            return changetype<T>(0);
+        }
+
         switch (idof<T>()) {
             case idof<ArrayBuffer>():
                 return changetype<T>(RLP.decodeBytes(buf));
@@ -213,6 +325,10 @@ export class RLPItem {
 
     isNull(): bool {
         return this.data.byteLength == 0;
+    }
+
+    address(): Address{
+        return new Address(this.bytes());
     }
 }
 

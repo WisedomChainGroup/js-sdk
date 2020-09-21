@@ -2,7 +2,7 @@ import BN = require("./bn");
 
 declare type AbiVMType = 'bool' | 'i64' | 'u64' | 'f64' | 'string' | 'bytes' | 'address' | 'u256'
 declare type AbiType = 'function' | 'event'
- 
+
 type AbiJSType = string | number | Uint8Array | ArrayBuffer | BN | boolean
 
 type Readable = string | number | boolean
@@ -17,6 +17,32 @@ declare namespace contractTool {
         INCLUDED,
         CONFIRMED,
         DROPPED
+    }
+
+    export interface Encodable {
+        getEncoded(): Uint8Array;
+    }
+
+    export class RLP {
+        /**
+         * 对字符串 rlp 编码
+         * @param s 字符串
+         */
+        static encodeString(s: string): Uint8Array;
+
+        /**
+         * 对字节数组进行 rlp 编码
+         * @param bytes 
+         */
+        static encodeBytes(bytes: Uint8Array | ArrayBuffer);
+
+        /**
+         * 
+         * @param o 
+         */
+        static encode(o: Uint8Array | string | Array<any> | ArrayBuffer | number | BN | null | Encodable): Uint8Array;
+
+        static decode(encoded: ArrayBuffer | Uint8Array): Uint8Array | Array<any>;
     }
 
     export class RPC {
@@ -35,7 +61,7 @@ declare namespace contractTool {
          * @param contract 合约
          * @param event 事件名称
          * @param func 回调函数
-         */        
+         */
         listenOnce(contract: Contract, event: string, func?: (x: Object) => void): number | Promise<Object>;
 
         /**
@@ -49,12 +75,29 @@ declare namespace contractTool {
         /**
          * 发送事务并进入观察
          * @param tx 事务
-         * @param status 
+         * @param status INCLUDED 或者 CONFIRMED
          * @param timeout 
          */
-        sendAndObserve(tx: Transaction, status?: TX_STATUS, timeout?: number): Promise<TransactionResult>
+        sendAndObserve(tx: Transaction, status?: TX_STATUS, timeout?: number): Promise<TransactionResult>;
+
+        /**
+         * 获取 nonce
+         * @param pkOrAddress 公钥、地址或者公钥哈希
+         */
         getNonce(pkOrAddress: Binary): Promise<string | number>;
+
+        /**
+         * 发送事务
+         * @param tx 事务
+         */
         sendTransaction(tx: Transaction): Promise<void>;
+
+        /**
+         * 
+         * @param tx 事务
+         * @param status 事务状态
+         * @param timeout 超时时间
+         */
         observe(tx: Transaction, status?: TX_STATUS, timeout?: number): Promise<TransactionResult>;
         close(): void
     }
@@ -76,7 +119,7 @@ declare namespace contractTool {
         buildContractCall(contract: Contract, method: string, parameters?: Array<AbiJSType> | Object | AbiJSType, amount?: Numeric): Transaction;
     }
 
-    export class Transaction {
+    export class Transaction implements Encodable {
         version: string;
         type: string;
         nonce: string;
@@ -85,13 +128,15 @@ declare namespace contractTool {
         amount: string;
         payload: string;
         to: string;
-        signature: string
+        signature: string;
         constructor(version?: Numeric, type?: Numeric, nonce?: Numeric, from?: Binary, gasPrice?: Numeric, amount?: Numeric, payload?: Binary, to?: Binary, signature?: Binary);
         // 得到事务哈希
         getHash(): Uint8Array;
         // 用私钥签名事务
         sign(sk: Binary): void;
-        static clone(o: Object): Transaction
+        static clone(o: Object): Transaction;
+        // rlp 编码
+        getEncoded(): Uint8Array;
     }
 
     /**
@@ -173,7 +218,10 @@ declare interface TypeDef {
     name?: string;
 }
 
-declare interface TransactionResult{
+/**
+ * 合约调用的结果
+ */
+declare interface TransactionResult {
     blockHeight: number;
     blockHash: string;
     gasUsed: string | number;
@@ -185,7 +233,10 @@ declare interface TransactionResult{
     inputs: Object | Array<Readable>
 }
 
-declare interface Event{
+/**
+ * 合约事件
+ */
+declare interface Event {
     name: string;
     data: Object;
 }

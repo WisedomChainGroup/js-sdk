@@ -2186,7 +2186,8 @@
         getContractAddress: getContractAddress,
         Contract: Contract,
         TX_STATUS: TX_STATUS,
-        publicKeyHash2Address: publicKeyHash2Address
+        publicKeyHash2Address: publicKeyHash2Address,
+        RLP: RLP
     }
 
     if (!isBrowser)
@@ -2250,12 +2251,14 @@
         const ret = []
         let funRe = /export[\s\n\t]+function[\s\n\t]+([a-zA-Z_][a-zA-Z0-9_]*)[\s\n\t]*\(([a-z\n\s\tA-Z0-9_,:]*)\)[\s\n\t]*:[\s\n\t]*([a-zA-Z_][a-zA-Z0-9_]*)[\s\n\t]*{/g
         let eventRe = /@unmanaged[\s\n\t]+class[\s\n\t]+([a-zA-Z_][a-zA-Z0-9]*)[\s\n\t]*\{[\s\n\t]*constructor[\s\n\t]*\(([a-z\n\s\tA-Z0-9_,:]*)\)/g
-
-        for (let m of str.match(funRe)) {
+        let contains__idof = false
+        for (let m of (str.match(funRe) || [])) {
             funRe.lastIndex = 0
             const r = funRe.exec(m)
-            if (r[1] === '__idof')
+            if (r[1] === '__idof'){
+                contains__idof = true
                 continue
+            }
             ret.push({
                 type: 'function',
                 name: r[1],
@@ -2265,7 +2268,7 @@
         }
 
 
-        for (let m of str.match(eventRe)) {
+        for (let m of (str.match(eventRe) || [])) {
             eventRe.lastIndex = 0
             const r = eventRe.exec(m)
             ret.push({
@@ -2275,6 +2278,9 @@
                 outputs: getInputs(r[2], true)
             })
         }
+
+        if(!contains__idof)
+            throw new Error('any contract must contains a __idof function')
         return ret
     }
 

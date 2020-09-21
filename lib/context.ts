@@ -221,22 +221,9 @@ enum ContextType {
 }
 
 export enum TransactionType {
-    // coinbase transaction has code 0
     COIN_BASE,
-    // the amount is transferred from sender to recipient
-    // if type is transfer, payload is null
-    // and fee is a constant
     TRANSFER,
-    // if type is contract deploy, payload is wasm binary module
-    // fee = gasPrice * gasUsage
     CONTRACT_DEPLOY,
-    // if type is contract call, payload = gasLimit(little endian, 8 bytes) +
-    // method name length (an unsigned byte) +
-    // method name(ascii string, [_a-zA-Z][_a-zA-Z0-9]*) +
-    // custom parameters, could be load by Parameters.load() in contract
-    // fee = gasPrice * gasUsage
-    // e.g.
-
     CONTRACT_CALL
 }
 
@@ -317,63 +304,12 @@ export class Context {
     }
 
     static emit<T>(t: T): void {
-
         const name = nameof<T>();
         const nameBuf = Util.str2bin(name);
         if (isManaged<T>())
             assert(false, 'class ' + name + ' should be annotated with @unmanaged')
-        const abi = RLPList.fromEncoded(Context.self().abi());
-        for (let i: u32 = 0; i < abi.length(); i++) {
-            const li = abi.getList(i);
-            if (li.getItem(0).string() == name && li.getItem(1).u64() == 1) {
-                const outputs = li.getList(3);
-                const data = new Array<ArrayBuffer>();
-                let offset = 0;
-                let ptr = changetype<usize>(t)
-                for (let j: u32 = 0; j < outputs.length(); j++) {
-                    switch (outputs.getItem(j).u32()) {
-                        case ABI_DATA_TYPE.BOOL:{
-                            data.push(RLP.encodeU64(load<u8>(ptr + offset)));
-                            offset += 8;
-                            break;
-                        }
-                        case ABI_DATA_TYPE.F64:
-                        case ABI_DATA_TYPE.I64:
-                        case ABI_DATA_TYPE.U64:{
-                            data.push(RLP.encodeU64(load<u64>(ptr + offset)));
-                            offset += 8;
-                            break;
-                        }
-                        case ABI_DATA_TYPE.BYTES: {
-                            data.push(RLP.encodeBytes(load<ArrayBuffer>(ptr + offset)));
-                            offset += 4;
-                            break;
-                        }
-                        case ABI_DATA_TYPE.STRING: {
-                            data.push(RLP.encodeString(load<string>(ptr + offset)));
-                            offset += 4;
-                            break;
-                        }
-                        case ABI_DATA_TYPE.U256: {
-                            data.push(RLP.encodeU256(load<U256>(ptr + offset)));
-                            offset += 4;
-                            break;
-                        }
-                        case ABI_DATA_TYPE.ADDRESS: {
-                            data.push(RLP.encode<Address>(load<Address>(ptr + offset)));
-                            offset += 4;
-                            break;
-                        }
-                        default:
-                            assert(false, ' invalid abi type ' + outputs.getItem(j).u32().toString());
-                    }
-                }
-                const buf = RLP.encodeElements(data);
-                _event(changetype<usize>(nameBuf), nameBuf.byteLength, changetype<usize>(buf), buf.byteLength);
-                return
-            }
-        }
-        assert(false, 'emit event ' + name + ' failed, abi not found');
+        const buf = RLP.encode<T>(t);
+        _event(changetype<usize>(nameBuf), nameBuf.byteLength, changetype<usize>(buf), buf.byteLength);
     }
 
 
