@@ -1,4 +1,4 @@
-import { U256, Address, log, Context, ABI_DATA_TYPE } from '.'
+import { U256, Address, Context, ABI_DATA_TYPE } from '.'
 import { Util } from './util';
 const OFFSET_SHORT_LIST: u8 = 0xc0;
 
@@ -44,10 +44,9 @@ export class RLP {
         if (isString<T>()) {
             return RLP.encodeString(changetype<string>(t));
         }
-        if(!isManaged<T>()){
+        if (!isManaged<T>()) {
             const name = nameof<T>();
             const abi = RLPList.fromEncoded(Context.self().abi());
-            log('rlp encode: offset of ' + name + ' is ' + offsetof<T>().toString());
             for (let i: u32 = 0; i < abi.length(); i++) {
                 const li = abi.getList(i);
                 if (li.getItem(0).string() == name && li.getItem(1).u64() == 1) {
@@ -57,12 +56,12 @@ export class RLP {
                     let ptr = changetype<usize>(t)
                     for (let j: u32 = 0; j < outputs.length(); j++) {
                         switch (outputs.getItem(j).u32()) {
-                            case ABI_DATA_TYPE.BOOL:{
+                            case ABI_DATA_TYPE.BOOL: {
                                 assert(false, 'bool is not stable in unmanaged runtime');
                             }
                             case ABI_DATA_TYPE.F64:
                             case ABI_DATA_TYPE.I64:
-                            case ABI_DATA_TYPE.U64:{
+                            case ABI_DATA_TYPE.U64: {
                                 assert(false, 'native number is not stable in unmanaged runtime');
                                 break;
                             }
@@ -94,8 +93,8 @@ export class RLP {
                     return buf;
                 }
             }
-            assert(false, 'rlp encode ' + name + ' failed, abi not found');  
-            return new ArrayBuffer(0);          
+            assert(false, 'rlp encode ' + name + ' failed, abi not found');
+            return new ArrayBuffer(0);
         }
 
         switch (idof<T>()) {
@@ -149,13 +148,12 @@ export class RLP {
             return changetype<T>(RLP.decodeString(buf));
         }
 
-        if(!isManaged<T>()){
+        if (!isManaged<T>()) {
             const name = nameof<T>();
             const p = __alloc(offsetof<T>(), 0);
             __retain(p);
             const abi = RLPList.fromEncoded(Context.self().abi());
             const rlp = RLPList.fromEncoded(buf);
-            log('rlp decode: offset of ' + name + ' is ' + offsetof<T>().toString());
 
             for (let i: u32 = 0; i < abi.length(); i++) {
                 const li = abi.getList(i);
@@ -164,13 +162,13 @@ export class RLP {
                     let offset = 0;
                     for (let j: u32 = 0; j < outputs.length(); j++) {
                         switch (outputs.getItem(j).u32()) {
-                            case ABI_DATA_TYPE.BOOL:{
+                            case ABI_DATA_TYPE.BOOL: {
                                 assert(false, 'bool is not stable in runtime, please convert to string');
                                 break;
                             }
                             case ABI_DATA_TYPE.F64:
                             case ABI_DATA_TYPE.I64:
-                            case ABI_DATA_TYPE.U64:{
+                            case ABI_DATA_TYPE.U64: {
                                 assert(false, 'native number is not stable in unmanaged runtime, please convert to string');
                                 break;
                             }
@@ -199,7 +197,7 @@ export class RLP {
                         }
                     }
                     return changetype<T>(p);
-                }                
+                }
             }
             assert(false, 'rlp decode failed, invalid type ' + nameof<T>());
             return changetype<T>(0);
@@ -327,7 +325,7 @@ export class RLPItem {
         return this.data.byteLength == 0;
     }
 
-    address(): Address{
+    address(): Address {
         return new Address(this.bytes());
     }
 }

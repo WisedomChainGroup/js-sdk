@@ -2280,7 +2280,7 @@
         }
 
         if(!contains__idof)
-            throw new Error('any contract must contains a __idof function')
+            throw new Error('any contract must contains an __idof function')
         return ret
     }
 

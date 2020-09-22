@@ -103,7 +103,7 @@ export class DBIterator {
         const keyBuf = new ArrayBuffer(i32(_db(Type.CURRENT_KEY, 0, 0, 0, 0)));
         _db(Type.CURRENT_KEY, changetype<usize>(keyBuf), 1, 0, 0);
 
-        const valueBuf = new ArrayBuffer(_db(Type.CURRENT_VALUE, 0, 0, 0, 0));
+        const valueBuf = new ArrayBuffer(i32(_db(Type.CURRENT_VALUE, 0, 0, 0, 0)));
         _db(Type.CURRENT_KEY, changetype<usize>(valueBuf), 1, 0, 0);
         return new Entry(keyBuf, valueBuf);
     }
