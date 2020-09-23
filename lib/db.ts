@@ -62,6 +62,10 @@ export class Globals{
     static has(str: string): bool {
         return DB.has(Util.str2bin(str));
     }
+
+    static remove(str: string): void{
+        DB.remove(Util.str2bin(str));
+    }
 }
 
 export class DB {
