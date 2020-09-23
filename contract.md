@@ -515,6 +515,164 @@ async function update(){
 }
 ```
 
+## 智能合约样例
+
+### ERC 20 模版
+
+以下为 ERC 20 为例，讲述智能合约编写的技巧。
+
+- ERC 20 合约有几个基本的常量 tokenName, symbol, decimals, totalSupply, owner 这些可以通过构造器注入全局变量实现
+
+```typescript
+export function init(tokenName: string, symbol: string, totalSupply: U256, decimals: u64, owner: Address): Address {
+    // tokenName || symbol || totalSupply || decimals || owner
+    Globals.set<string>('tokenName', tokenName);
+    Globals.set<string>('symbol', symbol);
+    Globals.set<U256>('totalSupply', totalSupply);
+    Globals.set<u64>('decimals', decimals);
+    Globals.set<Address>('owner', owner);
+    _balance.set(owner, totalSupply);
+    // 返回合约自身的地址
+    return Context.self();
+}
+
+export function tokenName(): string {
+    return Globals.get<string>('tokenName');
+}
+
+export function symbol(): string {
+    return Globals.get<string>('symbol');
+}
+
+export function decimals(): u64 {
+    return Globals.get<u64>('decimals');
+}
+
+export function totalSupply(): U256 {
+    return Globals.get<U256>('totalSupply');
+}
+
+export function owner(): Address {
+    return Globals.get<Address>('owner');
+}
+
+```
+
+- ERC 20 最主要的三个状态存储有：
+
+    1. balance，记录了每个地址对应可用余额，是 address -> u256 的映射
+    2. freeze，记录了每个地址对应的冻结金额，是 address -> u256 的映射
+    3. allowance，这个比较复杂，是一个 address -> address -> u256 的映射，记录的是每个地址允许另一个地址转账的金额。例如 allowance 中有一条记录是 A -> B -> 200，那么 B 就可以从 A 账户转移 200 到任意账户地址
+
+    balance 和 freeze 的实现比较简单，通过内置对象 ```Store``` 可以实现：
+
+    ```typescript
+    const _balance = Store.from<Address, U256>('balance'); // 创建临时变量 _balance 用于操作持久化存储
+    const _freeze = Store.from<Address, U256>('freeze'); // 创建临时变量 _freeze 用于操作持久化存储
+    ```
+
+    allowance 的实现较为复杂，我们可以通过在 Store 前面加前缀的方式实现
+
+    ```typescript
+    // 构造 Store
+    function getAllowanceDB(addr: Address): Store<Address, U256> {
+        // 以 'allowance' + address 作为前缀 实现 Store
+        const prefix = Util.concatBytes(Util.str2bin('allowance'), addr.buf);
+        return new Store<Address, U256>(prefix);
+    }
+    ```    
+
+- 有了状态存储就有了相应的状态读取和改变函数：
+
+    1. 读取余额
+    ```typescript
+    // display balance
+    export function balanceOf(addr: Address): U256 {
+        return _balance.getOrDefault(addr, U256.ZERO);
+    }    
+    ```
+
+    2. 转账
+    ```typescript
+    export function transfer(to: Address, amount: U256): void {
+        // 这里的 msg 对象类似 solidity，包含了合约的当前调用者
+        const msg = Context.msg();
+        assert(amount > U256.ZERO, 'amount is not positive');
+        let b = balanceOf(msg.sender)
+        // 断言余额足够
+        assert(b >= amount, 'balance is not enough');
+        // + 操作符对整数溢出是默认安全的
+        _balance.set(to, balanceOf(to) + amount);
+        _balance.set(msg.sender, balanceOf(msg.sender) - amount);
+    }
+    ```
+
+    3. 冻结
+    ```typescript
+    export function freeze(amount: U256): void {
+        const msg = Context.msg();
+        assert(balanceOf(msg.sender) >= amount, 'balance is not enough');
+        _balance.set(msg.sender, balanceOf(msg.sender) - amount);
+        _freeze.set(msg.sender, freezeOf(msg.sender) + amount);
+    }    
+    ```
+
+
+    4. 解冻
+    ```typescript
+    export function unfreeze(amount: U256): void {
+        const msg = Context.msg();
+        assert(freezeOf(msg.sender) >= amount, 'freeze is not enough');
+        _freeze.set(msg.sender, freezeOf(msg.sender) - amount);
+        _balance.set(msg.sender, balanceOf(msg.sender) + amount);
+    }
+    ```
+
+    5. 同意他人使用一部分自己的余额
+    ```typescript
+    export function approve(to: Address, amount: U256): void {
+        const msg = Context.msg();
+        assert(amount > U256.ZERO, 'amount is not positive');
+        const db = getAllowanceDB(msg.sender);
+        db.set(to, amount);
+    }    
+    ```
+
+    6. 查看他人同意自己使用的数额
+    ```typescript
+    export function allowanceOf(from: Address, sender: Address): U256 {
+        const db = getAllowanceDB(from);
+        return db.getOrDefault(sender, U256.ZERO);
+    }
+    ```
+
+    6. 从他人账户中转账
+    ```typescript
+    export function transferFrom(from: Address, to: Address, amount: U256): void {
+        const msg = Context.msg();
+        assert(amount > U256.ZERO, 'amount is not positive');
+        const allowance = allowanceOf(from, msg.sender);
+        const balance = balanceOf(from);
+        assert(balance >= amount, 'balance is not enough');
+        assert(allowance >= amount, 'allowance is not enough');
+
+        const db = getAllowanceDB(from);
+        db.set(msg.sender, allowanceOf(from, msg.sender) - amount);
+
+        _balance.set(from, balanceOf(from) - amount);
+        _balance.set(to, balanceOf(to) + amount);
+    }    
+```
+
+
+- 发布事件
+
+
+
+
+
+
+
 
 
 
