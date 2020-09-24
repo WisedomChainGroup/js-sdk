@@ -9,33 +9,22 @@
 
 AssemblyScript 是 TypeScript 的一个变种，和 TypeScript 不同，AssemblyScript 使用严格类型。Wisdom Chain 的智能合约基于的是 WebAssembly 字节码实现的虚拟机，AssemblyScript 可以编译为 WebAssembly 字节码。
 
-## 数据类型
+## 基础数据类型
 
-### javascript 的类型与智能合约数据类型的映射：
+### javascript 的类型与智能合约基础数据类型的映射：
 
 | javascript 类型 |  智能合约中数据类型 | 描述              |
 | ------------------- | ---------------- | ----------------- |
-| ```number, string```           | ```i64```        | 64 bit 有符号整数 |
-| ```number, string```           | ```u64```        | 64 bit 无符号整数 |
-| ```number```           | ```f64```        | 单精度浮点数      |
+| ```number, string```           | ```i64```        | 64 bit 有符号整数，支持十进制和0x开头的十六进制 |
+| ```number, string```           | ```u64```        | 64 bit 无符号整数，支持十进制和0x开头的十六进制 |
+| ```number, string```           | ```f64```        | 双精度浮点数      |
 | ```string```            | ```Address```        | 地址  |
-| ```number, string```            | ```U256```        | 256 bit 无符号整数  |
+| ```number, string```            | ```U256```        | 256 bit 无符号整数，支持十进制和0x开头的十六进制  |
 | ```string, Uint8Array, ArrayBuffer```            | ```ArrayBuffer```        | 二进制字节数组 |
 | ```boolean```           | ```bool```        | 布尔类型 |
+| ```string``` | ```string``` | 字符串 |
 
-除了以上表中的基本类型以外的其他类型都是引用类型。
 
-
-### 类型转换
-
-当 AssemblyScript 编译器检查到存在可能不兼容的隐式类型转换时，编译会以异常结果终止。如果需要进行可能不兼容的类型转换，请使用强制类型转换。
-
-在AssemblyScript中，以上提到的每一个类型都有对应的强制转换函数。例如将一个 64 bit 无符号整数 类型的整数强制转换为 32 bit 无符号整数：
-
-```typescript
-const i: u64 = 123456789;
-const j = u64(i);
-```
 
 ### 类型声明
 
@@ -61,12 +50,6 @@ function sayHello(): { // 缺少类型声明 sayHello(): void
 ### 空值
 
 许多编程语言具有一个特殊的 ```null``` 类型表示空值，例如 javascript 和 java 的 ```null```, go 语言和 python 的 ```nil```。事实上 ```null``` 类型的引入给程序带来了许多不可预知性，空值检查的遗漏会给智能合约带来安全隐患，因此 TDS 智能合约的编写没有引入 ```null``` 类型。
-
-### 数值比较
-
-当使用比较运算符 ```!=``` 和 ```==``` 时，如果两个数值在类型转换时是兼容的，则不需要强制类型转换就可以进行比较。
-
-操作符 ```>```，```<```，```>=```，```<=``` 对无符号整数和有符号整数有不同的比较方式，被比较的两个数值要么都是有符号整数，要么都是无符号整数，且具有转换兼容性。
 
 
 ## 模块化
@@ -126,50 +109,6 @@ import {add} from './foo.ts'
 
 function addOne(a: i32): i32{
     return add(a, 1);
-}
-```
-
-## 标准库
-
-
-### 全局变量
-
-| 变量名         | 类型                     | 描述                                    |
-| -------------- | ------------------------ | --------------------------------------- |
-| ```NaN```      | ```f32``` 或者 ```f64``` | not a number，表示不是一个有效的浮点数  |
-| ```Infinity``` | ```f32``` 或者 ```f64``` | 表示无穷大   ```-Infinity``` 表示无穷小 |
-
-
-### 全局函数
-
-| 函数名     | 参数个数 | 参数列表               | 返回值类型 | 描述                                                         |
-| ---------- | -------- | ---------------------- | ---------- | ------------------------------------------------------------ |
-| ```isNaN``` | 1        | ```f32``` 或 ```f64``` | ```bool``` | 判断一个浮点数是否无效                                       |
-| ```isFinite``` | 1        | ```f32``` 或```f64``` | ```bool``` | 判断一个浮点数满足：1. 不是无穷大 2. 不是无穷小 3. 有效      |
-| ```parseInt``` | 1 或 2 | ```(string, radisx?: i32)``` | ```i64```  | 从字符串解析成一个整数，```radix```等于10则使用 10 进制，默认 ```radix``` 是 10 |
-| ```parseFloat``` | 1        | ```(string)```         | ```f64```  | 从字符串解析成一个浮点数，使用10进制                         |
-
-### 数组（Array）
-
-AssemblyScript 中的 ```Array<T>``` 与 JavaScript 中的 Array 非常相似。区别在于除了基本类型以外的数组初始化后，数组中的元素必须显示初始化后才可以访问。例如：
-
-
-1. 使用基本类型初始化：
-
-```typescript
-const arr = new Array<u64>(10); // 使用基本类型 u64 创建数组
-const zero = arr[0]; // zero 的值是 0，类型是 u64
-```
-
-2. 使用引用类型初始化：
-
-```typescript
-const arr = new Array<string>(10); // 使用基本类型 u64 创建数组
-const zero = arr[0]; // 因为 TDS 合约不允许 null 值，所以这里会报错，因为 arr[0] 没有被初始化
-
-// 正确的做法是进行初始化
-for(let i = 0; i < arr.length; i++){
-    arr[i] = "";
 }
 ```
 
@@ -662,10 +601,44 @@ export function owner(): Address {
         _balance.set(from, balanceOf(from) - amount);
         _balance.set(to, balanceOf(to) + amount);
     }    
-```
+    ```
 
 
 - 发布事件
+
+    1. 事件是一个特殊的 ```class```，这个类的所有字段都是只读的，仅有一个构造器方法，例如转账事件可以表示如下：
+
+    ```typescript
+    @unmanaged class Transfer{
+        constructor(readonly from: Address, readonly to: Address, readonly amount: U256)
+    }
+    ```
+
+    事件类的字段的类型只能是 Address, U256, string 或 ArrayBuffer，不可以是 bool, i64, u64 或者 f64
+
+    2. 合约中发布事件
+
+    通过 ```Context.emit<T>``` 函数可以向合约外发布事件，例如：
+
+    ```typescript
+    Context.emit<Transfer>(new Transfer(a, b, c));
+    ```
+
+    3. 合约外订阅事件
+
+    sdk 提供了合约外订阅事件的方法
+
+    ```js
+    const c = new tool.Contract(addr, abi) // 这里假设合约地址和 abi 都是已知的
+    const rpc = new tool.RPC('localhost', 19585)
+    rpc.listen(c, 'Transfer', console.log) // 当收到 Transfer 事件时打印事件
+    ```
+
+
+- 合约间调用
+
+
+- 合约部署
 
 
 
