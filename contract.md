@@ -637,10 +637,70 @@ export function owner(): Address {
 
 - 合约间调用
 
+    在合约 A 中想调用合约 B 的函数，那么首先要在部署合约 A 之间部署合约 B，获得合约 B 的地址，现在假设合约 B 的代码如下
 
-- 合约部署
+    ```typescript
+    export function init(): void{
 
+    }
 
+    export function id(x: u64): u64{
+        return x;
+    }
+
+    // 所有合约的主文件必须声明此函数
+    export function __idof(type: ABI_DATA_TYPE): u32 {
+        return ___idof(type);
+    }    
+    ```
+
+    假设合约B已经成功部署，地址为 addressB，现在编写合约 A 的代码
+
+    ```typescript
+    export function init(addr: Address): void{
+        Globals.set<Address>('addr', addr);
+    }
+
+    export function getId(x: u64): u64{
+        const addr = Globals.get<Address>('addr');
+        // 构造参数
+        const bd = new ParametersBuilder();
+        // 合约 B 的 id 函数只有一个参数，类型是 u64
+        bd.push<u64>(26);
+        return addr.call<u64>('id', bd.build(), 0);
+    }
+    ```
+
+    这样在部署合约 A 时把 合约 B 的地址通过构造器进行设置，以后调用合约 A 的 ```getId``` 方法时，合约 A 会去调用合约 B 的 ```id``` 方法。
+
+- 合约内部署合约
+
+    在合约 A 中想部署合约 B，首先要部署一份 B 的合约作为代码样板，假设合约 B 的代码如下
+
+    ```typescript
+    export function init(name: string): void{
+        Globals.set<string>('name', name);
+    }
+    ```    
+
+    假设合约B已经成功部署，地址为 addressB，现在编写合约 A 的代码
+
+    ```typescript
+    export function init(template: Address): void{
+        Globals.set<Address>('template', template);
+    }    
+
+    export function deploy(name: string): Address{
+        const template = Globals.get<Address>('template');
+        // 构造参数
+        const bd = new ParametersBuilder();
+        // 合约 B 的构造器参数只有一个，类型是 string
+        bd.push<string>(name);
+        return Context.create(template.code(), template.abi(), bd.build(), 0);
+    }
+    ```
+
+    这样在部署合约 A 时把 合约 B 的地址通过构造器进行设置，以后调用合约 A 的 ```delpoy``` 方法时，传入合约B的构造器参数，就可以通过调用合约的方式部署合约了。
 
 
 
