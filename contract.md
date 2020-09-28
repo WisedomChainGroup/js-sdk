@@ -7,7 +7,7 @@
 ## AssemblyScript 简介
 
 
-AssemblyScript 是 TypeScript 的一个变种，和 TypeScript 不同，AssemblyScript 使用严格类型。Wisdom Chain 的智能合约基于的是 WebAssembly 字节码实现的虚拟机，AssemblyScript 可以编译为 WebAssembly 字节码。
+[AssemblyScript](https://www.assemblyscript.org/) 是 TypeScript 的一个变种，和 TypeScript 不同，AssemblyScript 使用严格类型。Wisdom Chain 的智能合约基于的是 WebAssembly 字节码实现的虚拟机，AssemblyScript 可以编译为 WebAssembly 字节码。
 
 ## 基础数据类型
 
@@ -24,6 +24,122 @@ AssemblyScript 是 TypeScript 的一个变种，和 TypeScript 不同，Assembly
 | ```boolean```           | ```bool```        | 布尔类型 |
 | ```string``` | ```string``` | 字符串 |
 
+
+### 数组
+
+数组是一个数值的序列，数组的 api 和 javascript 非常相似，但是 assembly script 的数组必须带有泛型而且不能有 null 值，且访问前必须初始化
+
+
+```typescript
+var arr = new Array<string>(10)
+// arr[0]; // would error 😢
+for (let i = 0; i < arr.length; ++i) {
+  arr[i] = ""
+}
+arr[0]; // now it works 😊
+```
+
+### 映射
+
+映射会被持久化存储，映射的 key, value 必须是 基础类型或者 用 @unmanaged  标记的结构体类型，且不能嵌套，例如在 erc 20 智能合约中可以用 Store 存储每个用户的余额
+
+```typescript
+const _balance = Store.from<Address, U256>('balance');
+```
+
+Store.get, Store.set, Store.remove, Store.has 都可以用于查询
+
+### 内部对象
+
+1. 地址
+
+- 合约向地址转账
+
+```typescript
+const addr: Address;
+addr.transfer(100); // 单位是 brain
+```
+
+- 合约调用合约
+
+```typescript
+const p = Parameters();
+p.push<u64>(0); // 构造方法参数
+addr.call('方法名', p.build(), 0); // 
+```
+
+- 查看地址的余额
+
+```typescript
+addr.balance();
+```
+
+- 查看合约地址的字节码，常用于合约内部署合约
+
+```typescript
+addr.code();
+```
+
+- 查看合约的 abi，常用于合约内部署合约
+
+```typescript
+addr.abi();
+```
+
+2. 区块头
+
+
+```typescript
+const header = Context.header();
+header.parentHash; // 父区块的哈希值
+header.createdAt; // 区块的时间戳，是 unix 纪元到现在的秒数
+header.height; // 区块的高度
+```
+
+3. Msg 
+
+```typescript
+const msg = Context.msg();
+msg.sender; // 当前的调用者
+msg.amount; // 当前调用者支付的 brain 数量
+```
+
+4. Transaction 事务
+
+```typescript
+const tx = Context.transaction();
+tx.nonce; // 事务的 nonce
+tx.origin; // 事务构造者
+tx.gasPrice; // 事务的 gas 单价
+tx.amount; // 事务的 amount
+tx.to; // 事务的 to
+tx.signature; // 事务的签名
+tx.hash; // 事务的哈希值
+```
+
+5. 哈希值计算
+
+```typescript
+Hash.keccak256; // 计算 keccak256 哈希值
+```
+
+### 断言
+
+如果断言失败，合约调用会终止
+
+```typescript
+const truth = false;
+assert(truth, 'assert failed');
+```
+
+### 手续费
+
+智能合约调用和部署的 gas 单价为 200000 brain。
+对于智能合约部署和调用的事务 ，gas = (事务 payload 长度 + 虚拟机执行的步数) / 1024
+
+### 合约地址计算
+
+合约地址可以通过部署合约事务的哈希值计算得到，计算方式是对事务的哈希进行 rmd160 得到20字节的哈希值，在对20个字节的哈希值进行 base58 编码
 
 
 ### 类型声明
@@ -585,7 +701,7 @@ export function owner(): Address {
     }
     ```
 
-    6. 从他人账户中转账
+    7. 从他人账户中转账
     ```typescript
     export function transferFrom(from: Address, to: Address, amount: U256): void {
         const msg = Context.msg();

@@ -274,8 +274,6 @@ export class Msg {
 
 export class Transaction {
     constructor(
-        readonly type: u32,
-        readonly createdAt: u64,
         readonly nonce: u64,
         readonly origin: Address,
         readonly gasPrice: U256,
@@ -331,8 +329,6 @@ export class Context {
 
     static transaction(): Transaction {
         return new Transaction(
-            u8(getU64(ContextType.TX_TYPE)),
-            getU64(ContextType.TX_CREATED_AT),
             getU64(ContextType.TX_NONCE),
             new Address(getBytes(ContextType.TX_ORIGIN)),
             new U256(getBytes(ContextType.TX_GAS_PRICE)),
