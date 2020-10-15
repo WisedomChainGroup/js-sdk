@@ -1283,9 +1283,9 @@
                         ret = new BN(o, 10)
                     }
                     if (type === ABI_DATA_TYPE.U64)
-                        assert(ret.cmp(MAX_U64) <= 0, `${ret.toString(10)} overflows max u64 ${MAX_U64.toString(10)}`)
+                        assert(ret.cmp(MAX_U64) <= 0 && !ret.isNeg(), `${ret.toString(10)} overflows max u64 ${MAX_U64.toString(10)}`)
                     if (type === ABI_DATA_TYPE.U256)
-                        assert(ret.cmp(MAX_U256) <= 0, `${ret.toString(10)} overflows max u256 ${MAX_U256.toString(10)}`)
+                        assert(ret.cmp(MAX_U256) <= 0 && !ret.isNeg(), `${ret.toString(10)} overflows max u256 ${MAX_U256.toString(10)}`)
                     return ret
                 }
                 case ABI_DATA_TYPE.I64: {
@@ -1364,6 +1364,8 @@
             switch (type) {
                 case ABI_DATA_TYPE.U256:
                 case ABI_DATA_TYPE.U64: {
+                    if(o.isNeg())
+                        throw new Error(`cannot convert negative ${o.toString()} to uint`)
                     return o;
                 }
                 case ABI_DATA_TYPE.STRING: {
@@ -1374,7 +1376,7 @@
                     throw new Error("cannot convert big number to address or bytes")
                 }
                 case ABI_DATA_TYPE.BOOL: {
-                    if (o.cmp(1) === 0 || o.cmp(1) === 0)
+                    if (o.cmp(new BN(1)) === 0 || o.cmp(new BN(0)) === 0)
                         return o
                     throw new Error(`convert ${o} to bool failed, provide 1 or 0`)
                 }
