@@ -1,6 +1,3 @@
-
-import contractTool = require('./contract')
-
 interface KeyStoreJSON{
     address: string
     crypto: {
