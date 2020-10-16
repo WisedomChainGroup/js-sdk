@@ -34,6 +34,10 @@ class KeyStore {
         })).hashHex, 'hex')
     }
 
+    setArgon2(fn){
+        this.argon2 = fn
+    }
+
     async Create (pwd) {
         try {
             if(pwd.length>20 || pwd.length<8){
@@ -72,16 +76,7 @@ class KeyStore {
             let totalLength = salt.length+p1.length;
             const s1 = Buffer.concat([salt, p1], totalLength).toString('ascii');
             // const s1 = keyStore.kdfparams.salt + p1;
-            const derivedKey = Buffer.from((await argon2b.hash({
-                pass: s1,
-                time: 4,
-                mem: 20480,
-                hashLen: 32,
-                parallelism: 2,
-                type: argon2b.ArgonType.Argon2id,
-                salt: salt
-            })).hashHex, 'hex')
-
+            const derivedKey = this.argon2(s1, salt)
 
             const vi = Buffer.from(keyStore.crypto.cipherparams.iv, 'hex');
             const aesCtr = new aesjs.ModeOfOperation.ctr(derivedKey, new aesjs.Counter(vi));
