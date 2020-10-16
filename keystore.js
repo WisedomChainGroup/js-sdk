@@ -3,7 +3,8 @@
 const AccountHandle = require('./account-handle');
 const aesjs = require('./aes-js');
 const keccak256 = require('./sha3').keccak256;
-const argon2 = require('argon2');
+const argon2b = require('argon2-browser');
+
 const fs = require('fs');
 const crypto = require('crypto');
 const uuidV4 = require('uuid/v4');
@@ -63,7 +64,16 @@ class KeyStore {
             let totalLength = salt.length+p1.length;
             const s1 = Buffer.concat([salt, p1], totalLength).toString('ascii');
             // const s1 = keyStore.kdfparams.salt + p1;
-            const derivedKey = await argon2.hash(s1, options);
+            const derivedKey = Buffer.from((await argon2b.hash({
+                pass: s1,
+                time: 4,
+                mem: 20480,
+                hashLen: 32,
+                parallelism: 2,
+                type: argon2b.ArgonType.Argon2id,
+                salt: salt
+            })).hashHex, 'hex')
+
 
             const vi = Buffer.from(keyStore.crypto.cipherparams.iv, 'hex');
             const aesCtr = new aesjs.ModeOfOperation.ctr(derivedKey, new aesjs.Counter(vi));

@@ -26,7 +26,8 @@
   "author": "",
   "bundleDependencies": false,
   "dependencies": {
-    "argon2": "^0.19.3",
+    "argon2-browser": "^1.15.2",
+    "assemblyscript": "^0.14.10",
     "bn": "^1.0.3",
     "bn.js": "^5.0.0",
     "int64-buffer": "^0.99.1007",
@@ -34,8 +35,7 @@
     "request": "^2.88.0",
     "rlp": "^2.2.5",
     "uint32": "^0.2.1",
-    "uuid": "^3.3.3",
-    "assemblyscript": "^0.14.10"
+    "uuid": "^3.3.3"
   },
   "deprecated": false,
   "keywords": [
