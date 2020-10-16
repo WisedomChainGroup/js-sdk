@@ -1,12 +1,33 @@
 
 import contractTool = require('./contract')
 
+interface KeyStoreJSON{
+    address: string
+    crypto: {
+        cipher: string
+        cipherparams: {
+            iv: string
+        },
+        ciphertext: string
+    }
+    kdf: string
+    kdfparams: {
+        timeCost: number
+        memoryCost: number
+        parallelism: number
+        salt: string
+    }    
+    version: string
+    mac: string
+    id: string
+}
+
 export default class KeyStore{
     /**
      * 生成 keystore
      * @param pwd 密码
      */
-    Create (pwd: string) : Promise<Object>;
+    Create (pwd: string) : Promise<KeyStoreJSON>;
 
     /**
      * 读取keystore中的私钥
@@ -20,6 +41,6 @@ export default class KeyStore{
      * @param keyStore
      * @param pwd
      */
-    DecryptSecretKeyfull(keyStore: any, pwd: string): Promise<string>;
+    DecryptSecretKeyfull(keyStore: KeyStoreJSON, pwd: string): Promise<string>;
 }
 
