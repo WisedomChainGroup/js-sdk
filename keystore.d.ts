@@ -14,5 +14,12 @@ export default class KeyStore{
      * @param pwd 密码
      */
     DecryptSecretKey(addr: string, pwd: string): Promise<any>;
+
+    /**
+     *
+     * @param keyStore
+     * @param pwd
+     */
+    DecryptSecretKeyfull(keyStore: any, pwd: string): Promise<string>;
 }
 

@@ -22,6 +22,18 @@ class KeyStore {
     constructor() {
     }
 
+    async argon2(s1, salt){
+        return Buffer.from((await argon2b.hash({
+            pass: s1,
+            time: 4,
+            mem: 20480,
+            hashLen: 32,
+            parallelism: 2,
+            type: argon2b.ArgonType.Argon2id,
+            salt: salt
+        })).hashHex, 'hex')
+    }
+
     async Create (pwd) {
         try {
             if(pwd.length>20 || pwd.length<8){
@@ -55,10 +67,6 @@ class KeyStore {
             //私钥加密
             // const salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
             const salt = Buffer.from(keyStore.kdfparams.salt, 'ascii');
-            const options = {
-                timeCost: 4, memoryCost: 20480, parallelism: 2, type: argon2.argon2id, hashLength: 32, 
-                version: 0x13, raw: true, salt
-            };
             // const p1 = Buffer.from(pwd, 'ascii').toString('hex');
             const p1 = Buffer.from(pwd, 'ascii');
             let totalLength = salt.length+p1.length;
@@ -118,14 +126,7 @@ class KeyStore {
             s1 = keyStore.kdfparams.salt + p1;
         }
         
-        const options = {
-            //memoryCost做了修改，修改成了20480，原因是与前面生成的参数不一致，改成一致
-            timeCost: 4, memoryCost: 20480, parallelism: 2, type: argon2.argon2id, hashLength: 32, 
-            version: 0x13, raw: true, salt
-        };
-        
-        const derivedKey = await argon2.hash(s1, options);
-
+        const derivedKey = await this.argon2(s1, salt);
         const dc = derivedKey.toString('hex') + keyStore.crypto.ciphertext;
         const dc_buf = Buffer.from(dc, 'hex');
         const mac = keccak256(dc_buf);
@@ -191,12 +192,8 @@ class KeyStore {
                 p1 = Buffer.from(pwd, 'ascii').toString('hex');
                 s1 = keyStore.kdfparams.salt + p1;
             }
-            const options = {
-                //memoryCost做了修改，修改成了20480，原因是与前面生成的参数不一致，改成一致
-                timeCost: 4, memoryCost: 20480, parallelism: 2, type: argon2.argon2id, hashLength: 32, 
-                version: 0x13, raw: true, salt
-            };
-            const derivedKey = await argon2.hash(s1, options);
+  
+            const derivedKey = await this.argon2(s1, salt);
 
             const dc = derivedKey.toString('hex') + keyStore.crypto.ciphertext;
             const dc_buf = Buffer.from(dc, 'hex');
@@ -244,12 +241,7 @@ class KeyStore {
             s1 = keyStore.kdfparams.salt + p1;
         }
 
-        const options = {
-            //memoryCost做了修改，修改成了20480，原因是与前面生成的参数不一致，改成一致
-            timeCost: 4, memoryCost: 20480, parallelism: 2, type: argon2.argon2id, hashLength: 32, 
-            version: 0x13, raw: true, salt
-        };
-        const derivedKey = await argon2.hash(s1, options);
+        const derivedKey = await this.argon2(s1, salt);
 
         const dc = derivedKey.toString('hex') + keyStore.crypto.ciphertext;
         const dc_buf = Buffer.from(dc, 'hex');
@@ -404,14 +396,11 @@ class KeyStore {
             keyStore.version = "2";
             //私钥加密
             const salt = Buffer.from(keyStore.kdfparams.salt, 'ascii');
-            const options = {
-                timeCost: 4, memoryCost: 20480, parallelism: 2, type: argon2.argon2id, hashLength: 32, 
-                version: 0x13, raw: true, salt
-            };
+   
             const p1 = Buffer.from(newpwd, 'ascii');
             let totalLength = salt.length+p1.length;
             const s1 = Buffer.concat([salt, p1], totalLength).toString('ascii');
-            const derivedKey = await argon2.hash(s1, options);
+            const derivedKey = await this.argon2(s1, salt);
 
             const vi = Buffer.from(keyStore.crypto.cipherparams.iv, 'hex');
             const aesCtr = new aesjs.ModeOfOperation.ctr(derivedKey, new aesjs.Counter(vi));
