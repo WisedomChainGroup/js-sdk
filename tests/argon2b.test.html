@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <script src="https://requirejs.org/docs/release/2.3.6/minified/require.js">
+    </script>
+    <script>
+        function encodeHex(arr) {
+            let ret = ''
+            for (let i = 0; i < arr.length; i++) {
+                const n = arr[i]
+                ret += (n > 0x0f ? n.toString(16) : '0' + n.toString(16))
+            }
+            return ret
+        }
+        window.onload = () => {
+            require(['../argon2b.js'], fn => {
+                const arr = new Uint8Array(16)
+                arr[0] = 17
+                
+                    fn(new Uint8Array([1, 2, 3, 4, 5]), arr).then(encodeHex).then(console.log)
+                    .then(() => {
+                        for(let i=0; i< 100; i++)
+                            fn(new Uint8Array([1, 2, 3, 4, 5]), arr).then(encodeHex).then(console.log)
+                    })
+                
+            })
+        }        
+    </script>
+</body>
+
+</html>

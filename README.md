@@ -91,6 +91,13 @@ nonce：nonce(通过节点获取)
 ```
 * 返回keystore
 
+#### 浏览器环境使用
+
+```js
+const argon2b = require('keystore_wdc/argon2b')
+ks.setArgon2(argon2b)
+```
+
 ## 二、节点RPC接口
 
 #### 连接节点，ip+端口+调用方法+参数
@@ -495,5 +502,7 @@ async function transfer(){
    tx.sign(sk)
    console.dir(await rpc.sendAndObserve(tx, tool.TX_STATUS.INCLUDED), {depth: null})
 }
+
+
 
 ```

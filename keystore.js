@@ -76,7 +76,7 @@ class KeyStore {
             let totalLength = salt.length+p1.length;
             const s1 = Buffer.concat([salt, p1], totalLength).toString('ascii');
             // const s1 = keyStore.kdfparams.salt + p1;
-            const derivedKey = this.argon2(s1, salt)
+            const derivedKey = Buffer.from(await this.argon2(s1, salt))
 
             const vi = Buffer.from(keyStore.crypto.cipherparams.iv, 'hex');
             const aesCtr = new aesjs.ModeOfOperation.ctr(derivedKey, new aesjs.Counter(vi));
@@ -121,7 +121,7 @@ class KeyStore {
             s1 = keyStore.kdfparams.salt + p1;
         }
         
-        const derivedKey = await this.argon2(s1, salt);
+        const derivedKey = Buffer.from(await this.argon2(s1, salt));
         const dc = derivedKey.toString('hex') + keyStore.crypto.ciphertext;
         const dc_buf = Buffer.from(dc, 'hex');
         const mac = keccak256(dc_buf);
@@ -188,7 +188,7 @@ class KeyStore {
                 s1 = keyStore.kdfparams.salt + p1;
             }
   
-            const derivedKey = await this.argon2(s1, salt);
+            const derivedKey = Buffer.from(await this.argon2(s1, salt));
 
             const dc = derivedKey.toString('hex') + keyStore.crypto.ciphertext;
             const dc_buf = Buffer.from(dc, 'hex');
@@ -236,7 +236,7 @@ class KeyStore {
             s1 = keyStore.kdfparams.salt + p1;
         }
 
-        const derivedKey = await this.argon2(s1, salt);
+        const derivedKey = Buffer.from(await this.argon2(s1, salt));
 
         const dc = derivedKey.toString('hex') + keyStore.crypto.ciphertext;
         const dc_buf = Buffer.from(dc, 'hex');
@@ -395,7 +395,7 @@ class KeyStore {
             const p1 = Buffer.from(newpwd, 'ascii');
             let totalLength = salt.length+p1.length;
             const s1 = Buffer.concat([salt, p1], totalLength).toString('ascii');
-            const derivedKey = await this.argon2(s1, salt);
+            const derivedKey = Buffer.from(await this.argon2(s1, salt));
 
             const vi = Buffer.from(keyStore.crypto.cipherparams.iv, 'hex');
             const aesCtr = new aesjs.ModeOfOperation.ctr(derivedKey, new aesjs.Counter(vi));
