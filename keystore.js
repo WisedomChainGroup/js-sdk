@@ -559,6 +559,4 @@ class KeyStore {
     }
 }
 
-KeyStore.contractTool = require('./contract')
-
 module.exports = KeyStore;

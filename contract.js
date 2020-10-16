@@ -17,10 +17,10 @@
     const isBrowser = env === ENVS.BROWSER
 
 
-    const BN = isBrowser ? window['BN'] : require('./bn.js')
-    const _keccak256 = isBrowser ? this.keccak256 : require('./sha3.js').keccak256
-    const nacl = isBrowser ? this.nacl : require('./nacl.min.js')
-    const RMD160 = isBrowser ? (new this.Hashes.RMD160) : (new (require('./hashes.js').RMD160))
+    const BN = require('./bn.js')
+    const _keccak256 = require('./sha3.js').keccak256
+    const nacl = require('./nacl.min.js')
+    const RMD160 = (new (require('./hashes.js').RMD160))
     RMD160.setUTF8(false)
 
     /**
@@ -294,9 +294,6 @@
         hasher.update(msg)
         return new Uint8Array(hasher.arrayBuffer())
     }
-
-    const http = isBrowser ? null : require('http')
-    const child_process = isBrowser ? null : require('child_process');
 
     // 事务的所有状态
     const TX_STATUS = {
@@ -2084,6 +2081,7 @@
         if (isBrowser)
             throw new Error('compile contract is available in node environment')
         return new Promise((resolve, reject) => {
+            const child_process = require('child_process');
             child_process.exec(
                 cmd,
                 { encoding: 'buffer' },
@@ -2116,6 +2114,7 @@
                         'Content-Length': data.length
                     }
                 }
+                const http = require('http')
                 const req = http.request(
                     opt, (res) => {
                         let data = ""
