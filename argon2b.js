@@ -13,10 +13,6 @@
     var logTs = 0;
 
     function log(msg) {
-        if (!msg) {
-            return;
-        }
-        console.log(msg);
     }
 
     function leftPad(str, len) {
