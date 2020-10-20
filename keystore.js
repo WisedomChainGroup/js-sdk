@@ -98,6 +98,64 @@ class KeyStore {
         }
     }
 
+    async Import (pwd,privateKey) {
+        try {
+            if(pwd.length>20 || pwd.length<8){
+                return -1;
+            }
+            let keyStore = {};
+            //地址
+            keyStore.address = this.pubkeyHashToaddress(this.pubkeyToPubkeyHash(this.prikeyToPubkey(privateKey)),1);
+            keyStore.crypto = {};
+            //使用的加密算法，默认为aes-256-ctr
+            keyStore.crypto.cipher = "aes-256-ctr";
+            //keyStore.crypto.ciphertext = "";
+            keyStore.crypto.cipherparams = {};
+            //算法所需的参数，随机生成
+            keyStore.crypto.cipherparams.iv = crypto.randomBytes(16).toString('hex');  // must be 128 bit, random
+
+            //const aesCtr = new aesjs.ModeOfOperation.ctr(key_256, new aesjs.Counter(5));
+            //var encryptedBytes = aesCtr.encrypt(textBytes);
+            //密钥加密方法
+            keyStore.kdf = "Argon2id";
+            //Argon2id的参数，分别是散列计算的迭代次数，必须使用的存储器的大小以及可以并行计算散列的CPU数量
+            keyStore.kdfparams = {};
+            keyStore.kdfparams.timeCost = 4;
+            keyStore.kdfparams.memoryCost = 20480;
+            keyStore.kdfparams.parallelism = 2;
+            //Argon2id哈希计算使用的盐值，随机生成32
+            keyStore.kdfparams.salt = crypto.randomBytes(32).toString('hex'); // random
+            //keystore格式的版本号，默认为1  2019.12.19日更新keystore版本2
+            keyStore.version = "2";
+            //私钥加密
+            // const salt = Buffer.from(keyStore.kdfparams.salt, 'hex');
+            const salt = Buffer.from(keyStore.kdfparams.salt, 'ascii');
+            // const p1 = Buffer.from(pwd, 'ascii').toString('hex');
+            const p1 = Buffer.from(pwd, 'ascii');
+            let totalLength = salt.length+p1.length;
+            const s1 = Buffer.concat([salt, p1], totalLength).toString('ascii');
+            // const s1 = keyStore.kdfparams.salt + p1;
+            const derivedKey = Buffer.from(await this.argon2(s1, salt))
+
+            const vi = Buffer.from(keyStore.crypto.cipherparams.iv, 'hex');
+            const aesCtr = new aesjs.ModeOfOperation.ctr(derivedKey, new aesjs.Counter(vi));
+            let prikey = Buffer.from(privateKey,'hex');
+            const encryptedBytes = aesCtr.encrypt(prikey);
+            //加密过的私钥
+            keyStore.crypto.ciphertext = aesjs.utils.hex.fromBytes(encryptedBytes);
+
+            //用来比较解密密钥与口令的
+            const dc = derivedKey.toString('hex') + keyStore.crypto.ciphertext;
+            const dc_buf = Buffer.from(dc, 'hex');
+            keyStore.mac = keccak256(dc_buf);
+            //这是UUID，可以直接通过程序计算得到
+            keyStore.id = uuidV4();
+            return keyStore;
+        } catch (error) {
+            return 5000;
+        }
+    }
+
     EncryptSecretKey() {
 
     }
@@ -172,7 +230,7 @@ class KeyStore {
 
     async DecryptSecretKeyfull(keyStore, pwd) {
         try{
-            if(keyStore == null) return null;
+            if(keyStore == null) return 5000;
             let salt;
             let p1;
             let totalLength;
@@ -194,7 +252,7 @@ class KeyStore {
             const dc_buf = Buffer.from(dc, 'hex');
             const mac = keccak256(dc_buf);
 
-            if(mac != keyStore.mac) return null;
+            if(mac != keyStore.mac) return 5000;
 
             //私钥解密
             const vi = Buffer.from(keyStore.crypto.cipherparams.iv, 'hex');
