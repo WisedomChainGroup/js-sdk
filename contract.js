@@ -1931,6 +1931,20 @@
                 })
         }
 
+        /**
+         * 获取 账户余额
+         * @param pkOrAddress {string | Uint8Array | ArrayBuffer } 公钥或者地址
+         * @returns {Promise<string | number>}
+         */
+        getBalance(pkOrAddress) {
+            pkOrAddress = normalizeAddress(pkOrAddress)
+            return this.__wsRpc(WS_CODES.ACCOUNT_QUERY, pkOrAddress)
+                .then(resp => {
+                    const decoded = resp
+                    return toSafeInt(new BN(decoded[0][3], 'be'))
+                })
+        }
+
         close() {
             if (this.__ws) {
                 const __ws = this.__ws
