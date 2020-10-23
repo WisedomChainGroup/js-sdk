@@ -20,7 +20,7 @@ interface KeyStoreJSON{
 }
 
 export default class KeyStore{
-    setArgon2(fn: (pwd: Uint8Array, salt: Uint8Array) => Promise<Uint8Array>): void;
+    setArgon2(fn: (pwd: Uint8Array | string, salt: Uint8Array) => Promise<Uint8Array>): void;
     /**
      * 生成 keystore
      * @param pwd 密码

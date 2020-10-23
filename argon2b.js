@@ -48,6 +48,8 @@
     }
 
     function argon2(pwd, salt) {
+        if(typeof pwd === 'string')
+            pwd = new TextEncoder().encode(pwd)
         return new Promise((rs, rj) => {
             calcBinaryen(pwd, salt, rs)
         })

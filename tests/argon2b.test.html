@@ -19,16 +19,32 @@
             }
             return ret
         }
+
+
+        function hexToInt(x) {
+            if (48 <= x && x <= 57) return x - 48;
+            if (97 <= x && x <= 102) return x - 87;
+            if (65 <= x && x <= 70) return x - 55;
+            return 0;
+        }
+
+        function decodeHex(s) {
+            const ret = new Uint8Array(s.length / 2);
+            for (let i = 0; i < s.length / 2; i++) {
+                const h = s.charCodeAt(i * 2);
+                const l = s.charCodeAt(i * 2 + 1);
+                ret[i] = (hexToInt(h) << 4) + hexToInt(l);
+            }
+            return ret;
+        }
+
         window.onload = () => {
             require(['../argon2b.js'], fn => {
-                const arr = new Uint8Array(16)
-                arr[0] = 17
-                
-                    fn(new Uint8Array([1, 2, 3, 4, 5]), arr).then(encodeHex).then(console.log)
-                    .then(() => {
-                        for(let i=0; i< 100; i++)
-                            fn(new Uint8Array([1, 2, 3, 4, 5]), arr).then(encodeHex).then(console.log)
-                    })
+                const s1 = (new TextEncoder()).encode('74717a766a333074666a7273656731306f6d393868626966626a763638656e3200000000')
+                const salt = decodeHex('37343731376137363661333333303734363636613732373336353637333133303666366433393338363836323639363636323661373633363338363536653332')
+
+                    fn(s1, salt).then(encodeHex).then(console.log)
+
                 
             })
         }        
