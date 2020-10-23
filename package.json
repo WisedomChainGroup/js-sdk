@@ -48,7 +48,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "0.4.5-beta",
+  "version": "0.4.6-beta",
   "devDependencies": {
     "ws": "^7.3.1"
   }
