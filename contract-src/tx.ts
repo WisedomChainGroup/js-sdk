@@ -6,7 +6,7 @@ import { bin2str, concatArray, convert, dig2str, digest, extendPrivateKey, hex2b
 import { bin2hex } from "../contract";
 import BN = require("../bn");
 import rlp = require('./rlp')
-import nacl = require('../nacl')
+import nacl = require('../nacl.min.js')
 import { Encoder } from "./rlp";
 import { ABI, Contract } from "./contract";
 import Dict = NodeJS.Dict;

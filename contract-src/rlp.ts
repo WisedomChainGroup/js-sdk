@@ -1,4 +1,5 @@
 import { RLPElement } from "./types";
+import {assert} from './utils'
 
 const OFFSET_SHORT_ITEM = 0x80;
 const SIZE_THRESHOLD = 56;
@@ -15,15 +16,6 @@ import BN = require('../bn')
 
 export interface Encoder {
     getEncoded(): Uint8Array
-}
-
-function assert(bool: any, msg: string) {
-    if (!bool)
-        throw new Error(msg)
-}
-
-function isBytes(s: any): boolean {
-    return s instanceof Uint8Array || s instanceof ArrayBuffer
 }
 
 /**

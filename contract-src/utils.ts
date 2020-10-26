@@ -11,7 +11,7 @@ import {
     ONE,
     ZERO
 } from "./types";
-import nacl = require('../nacl')
+import nacl = require('../nacl.min.js')
 const RMD160 = (new (require('../hashes.js').RMD160))
 const _keccak256 = require('./sha3.js').keccak256
 import { Base58 } from "./base58"

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RLPList = exports.decodeElements = exports.decode = exports.encode = exports.encodeString = exports.encodeElements = exports.numberToByteArray = exports.byteArrayToInt = void 0;
+var utils_1 = require("./utils");
 var OFFSET_SHORT_ITEM = 0x80;
 var SIZE_THRESHOLD = 56;
 var OFFSET_LONG_ITEM = 0xb7;
@@ -9,22 +10,15 @@ var OFFSET_LONG_LIST = 0xf7;
 var EMPTY_BYTES = new Uint8Array(0);
 var EMPTY_RLP_ARRAY = new Uint8Array([0xc0]);
 var NULL_RLP = new Uint8Array([0x80]);
-var utils_1 = require("./utils");
+var utils_2 = require("./utils");
 var BN = require("../bn");
-function assert(bool, msg) {
-    if (!bool)
-        throw new Error(msg);
-}
-function isBytes(s) {
-    return s instanceof Uint8Array || s instanceof ArrayBuffer;
-}
 /**
  * 字节数组转 number
  * @param {Uint8Array | ArrayBuffer} bytes
  * @returns {number}
  */
 function byteArrayToInt(bytes) {
-    var arr = utils_1.hex2bin(bytes);
+    var arr = utils_2.hex2bin(bytes);
     var ret = 0;
     for (var i = 0; i < arr.length; i++) {
         var u = arr[arr.length - i - 1];
@@ -162,10 +156,10 @@ function estimateSize(encoded) {
     return parser.peekSize();
 }
 function validateSize(encoded) {
-    assert(encoded.length === estimateSize(encoded), 'invalid rlp format');
+    utils_1.assert(encoded.length === estimateSize(encoded), 'invalid rlp format');
 }
 function encodeString(s) {
-    return encodeBytes(utils_1.str2bin(s));
+    return encodeBytes(utils_2.str2bin(s));
 }
 exports.encodeString = encodeString;
 function encode(o) {
@@ -179,7 +173,7 @@ function encode(o) {
     if (typeof o === 'string')
         return encodeString(o);
     if (typeof o === 'number') {
-        assert(o >= 0 && Number.isInteger(o), o + " is not a valid non-negative integer");
+        utils_1.assert(o >= 0 && Number.isInteger(o), o + " is not a valid non-negative integer");
         return encodeBytes(numberToByteArray(o));
     }
     if (typeof o === 'boolean')
@@ -187,7 +181,7 @@ function encode(o) {
     if (o instanceof Uint8Array)
         return encodeBytes(o);
     if (o instanceof BN) {
-        return encodeBytes(utils_1.trimLeadingZeros(o.toArrayLike(Uint8Array, 'be')));
+        return encodeBytes(utils_2.trimLeadingZeros(o.toArrayLike(Uint8Array, 'be')));
     }
     if (Array.isArray(o)) {
         var elements = o.map(function (x) { return encode(x); });
@@ -279,7 +273,7 @@ var RLPParser = /** @class */ (function () {
         return ret;
     };
     RLPParser.prototype.bytes = function (n) {
-        assert(this.offset + n <= this.limit, 'read overflow');
+        utils_1.assert(this.offset + n <= this.limit, 'read overflow');
         var ret = this.buf.slice(this.offset, this.offset + n);
         this.offset += n;
         return ret;

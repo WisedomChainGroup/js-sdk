@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.bin2hex = exports.uuidv4 = exports.bin2str = exports.toSafeInt = exports.inverse = exports.convert = exports.bytesToF64 = exports.padPrefix = exports.f64ToBytes = exports.trimLeadingZeros = exports.str2bin = exports.normalizeAddress = exports.assertAddress = exports.concatBytes = exports.concatArray = exports.extendPrivateKey = exports.publicKeyHash2Address = exports.address2PublicKeyHash = exports.publicKey2Hash = exports.privateKey2PublicKey = exports.compareBytes = exports.dig2str = exports.hex2bin = exports.assert = exports.rmd160 = exports.digest = exports.isBin = void 0;
 var types_1 = require("./types");
-var nacl = require("../nacl");
+var nacl = require("../nacl.min.js");
 var RMD160 = (new (require('../hashes.js').RMD160));
 var _keccak256 = require('./sha3.js').keccak256;
 var base58_1 = require("./base58");

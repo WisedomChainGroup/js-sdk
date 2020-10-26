@@ -9,7 +9,7 @@ var utils_1 = require("./utils");
 var contract_1 = require("../contract");
 var BN = require("../bn");
 var rlp = require("./rlp");
-var nacl = require("../nacl");
+var nacl = require("../nacl.min.js");
 var contract_2 = require("./contract");
 var Transaction = /** @class */ (function () {
     /**
