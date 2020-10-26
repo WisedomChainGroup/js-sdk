@@ -12,7 +12,7 @@ var TransactionBuilder = /** @class */ (function () {
     function TransactionBuilder(version, sk, gasLimit, gasPrice, nonce) {
         this.version = utils_1.dig2str(version || '1');
         this.sk = contract_1.bin2hex(sk || '');
-        this.gasPrice = utils_1.dig2str(gasPrice || 0);
+        this.gasPrice = utils_1.dig2str(gasPrice || 200000);
         this.nonce = utils_1.dig2str(nonce || 0);
         this.gasLimit = utils_1.dig2str(gasLimit || 0);
     }
@@ -25,11 +25,9 @@ var TransactionBuilder = /** @class */ (function () {
      * 构造部署合约的事务
      */
     TransactionBuilder.prototype.buildDeploy = function (contract, _parameters, amount) {
-        if (!(contract instanceof contract_2.Contract))
-            throw new Error('create a instanceof Contract by new tool.Contract(addr, abi)');
-        utils_1.assert(contract.binary, 'contract binary is uint8 array');
-        if (!contract.abi)
-            throw new Error('missing contract abi');
+        utils_1.assert(contract instanceof contract_2.Contract, 'create a instanceof Contract by new tool.Contract(addr, abi)');
+        utils_1.assert(utils_1.isBin(contract.binary), 'contract binary should be uint8 array');
+        utils_1.assert(contract.abi, 'missing contract abi');
         var parameters = contract_2.normalizeParams(_parameters);
         var inputs;
         var binary = contract.binary;
@@ -37,9 +35,9 @@ var TransactionBuilder = /** @class */ (function () {
             inputs = contract.abiEncode('init', parameters);
         else
             inputs = [[], [], []];
-        var ret = this.buildCommon(types_1.constants.WASM_DEPLOY, amount, rlp.encode([this.gasLimit || 0, binary, parameters, contract.abiToBinary()]), new Uint8Array(20));
+        var ret = this.buildCommon(types_1.constants.WASM_DEPLOY, amount, rlp.encode([this.gasLimit || 0, utils_1.hex2bin(binary), inputs, contract.abiToBinary()]), new Uint8Array(20));
         ret.__abi = contract.abi;
-        ret.__setInputs(inputs);
+        ret.__setInputs(parameters);
         return ret;
     };
     /**
@@ -51,25 +49,22 @@ var TransactionBuilder = /** @class */ (function () {
      * @returns { Transaction }
      */
     TransactionBuilder.prototype.buildContractCall = function (contract, method, _parameters, amount) {
-        if (!(contract instanceof contract_2.Contract))
-            throw new Error('create a instanceof Contract by new tool.Contract(addr, abi)');
-        if (!contract.abi)
-            throw new Error('missing contract abi');
-        if (!contract.address)
-            throw new Error('missing contract address');
+        utils_1.assert(contract instanceof contract_2.Contract, 'create a instanceof Contract by new tool.Contract(addr, abi)');
+        utils_1.assert(contract.abi, 'missing contract abi');
+        utils_1.assert(contract.address, 'missing contract address');
         var parameters = contract_2.normalizeParams(_parameters);
         var addr = utils_1.normalizeAddress(contract.address);
         var inputs = contract.abiEncode(method, parameters);
         var ret = this.buildCommon(types_1.constants.WASM_CALL, amount, rlp.encode([this.gasLimit || 0, method, inputs]), contract_1.bin2hex(addr));
         ret.__abi = contract.abi;
-        ret.__setInputs(inputs);
+        ret.__setInputs(parameters);
         return ret;
     };
     /**
      * 创建事务
      */
     TransactionBuilder.prototype.buildCommon = function (type, amount, payload, to) {
-        var ret = new tx_1.Transaction(this.version, type, 0, utils_1.privateKey2PublicKey(this.sk), this.gasPrice, amount || 0, payload || '', utils_1.normalizeAddress(to));
+        var ret = new tx_1.Transaction(this.version, type, 0, utils_1.privateKey2PublicKey(this.sk), this.gasPrice, amount || 0, payload || '', to);
         if (this.nonce) {
             ret.nonce = utils_1.dig2str(this.nonce);
             this.increaseNonce();

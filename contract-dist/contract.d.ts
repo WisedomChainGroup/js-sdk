@@ -11,8 +11,7 @@ export declare function compileContract(ascPath: string, src: string, opts?: {
     optimize?: boolean;
 }): Promise<Uint8Array>;
 /**
- *
- * @param { ArrayBuffer | Uint8Array | string } str
+ * 编译合约 ABI
  */
 export declare function compileABI(_str: Binary): ABI[];
 export declare class TypeDef {

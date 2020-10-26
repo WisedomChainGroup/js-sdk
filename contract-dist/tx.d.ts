@@ -2,7 +2,7 @@
 /**
  * 事务
  */
-import { Binary, Digital, Readable } from "./types";
+import { AbiInput, Binary, Digital, Readable } from "./types";
 import BN = require("../bn");
 import { Encoder } from "./rlp";
 import { ABI } from "./contract";
@@ -34,15 +34,14 @@ export declare class Transaction implements Encoder {
     getRaw(nullSig: boolean): Uint8Array;
     /**
      * rlp 编码结果
-     * @returns { Uint8Array }
      */
     getEncoded(): Uint8Array;
-    __toArr(): Array<string | Uint8Array | BN | number>;
+    __toArr(): Array<string | Uint8Array | BN>;
     /**
      * 签名
      */
     sign(_sk: Binary): void;
-    __setInputs(__inputs: any): void;
+    __setInputs(__inputs: AbiInput[] | Dict<AbiInput>): void;
     getMethod(): string;
     isDeployOrCall(): boolean;
 }

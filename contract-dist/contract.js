@@ -35,8 +35,7 @@ function compileContract(ascPath, src, opts) {
 }
 exports.compileContract = compileContract;
 /**
- *
- * @param { ArrayBuffer | Uint8Array | string } str
+ * 编译合约 ABI
  */
 function compileABI(_str) {
     var str = utils_1.bin2str(_str);
@@ -267,7 +266,7 @@ var Contract = /** @class */ (function () {
         var types = [];
         for (var i = 0; i < func.inputs.length; i++) {
             var input = func.inputs[i];
-            types[i] = types_1.ABI_DATA_ENUM[func.inputs[i].type];
+            types[i] = types_1.ABI_DATA_TYPE_TABLE.indexOf(func.inputs[i].type);
             if (!(input.name in li)) {
                 throw new Error("key " + input.name + " not found in parameters");
             }

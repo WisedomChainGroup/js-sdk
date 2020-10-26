@@ -34,14 +34,19 @@ var RPC = /** @class */ (function () {
         else
             WS = require('ws');
         if (this.ws && this.ws.readyState === this.ws.OPEN) {
-            return Promise.resolve(null);
+            return Promise.resolve();
         }
         if (this.ws) {
             var fn_1 = this.ws.onopen || (function (e) { });
+            var _rj_1 = this.ws.onerror || (function (e) { });
             var p_1 = new Promise(function (rs, rj) {
                 _this.ws.onopen = function (e) {
                     fn_1.call(_this.ws, e);
                     rs();
+                };
+                _this.ws.onerror = function (e) {
+                    _rj_1.call(_this.ws, e);
+                    rj(e);
                 };
             });
             return p_1;
@@ -63,6 +68,7 @@ var RPC = /** @class */ (function () {
         };
         var p = new Promise(function (rs, rj) {
             _this.ws.onopen = rs;
+            _this.ws.onerror = rj;
         });
         return p;
     };
@@ -137,10 +143,6 @@ var RPC = /** @class */ (function () {
     };
     /**
      * 监听合约事件
-     * @param {Contract} contract 合约
-     * @param {string} event 事件
-     * @param {Function} func 合约事件回调 {name: event, data: data}
-     * @returns {number} 监听器的 id
      */
     RPC.prototype.__listen = function (contract, event, func) {
         var addr = utils_1.normalizeAddress(contract.address);
@@ -298,7 +300,8 @@ var RPC = /** @class */ (function () {
                         var decoded = (new contract_2.Contract('', tx.__abi)).abiDecode(tx.getMethod(), resp.result);
                         ret.result = decoded;
                     }
-                    if (resp.events.length
+                    if (resp.events &&
+                        resp.events.length
                         && tx.__abi) {
                         var events = [];
                         for (var _i = 0, _a = resp.events; _i < _a.length; _i++) {
@@ -348,17 +351,14 @@ var RPC = /** @class */ (function () {
     RPC.prototype.sendAndObserve = function (tx, status, timeout) {
         var _this = this;
         var ret;
-        var p;
         var sub;
         if (Array.isArray(tx)) {
-            p = [];
             var arr = [];
             sub = this.wsRpc(types_1.WS_CODES.TRANSACTION_SUBSCRIBE, tx.map(function (t) { return utils_1.hex2bin(t.getHash()); }));
             for (var _i = 0, tx_1 = tx; _i < tx_1.length; _i++) {
                 var t = tx_1[_i];
                 arr.push(this.observe(t, status, timeout));
             }
-            p = Promise.all(p);
             ret = Promise.all(arr);
         }
         else {

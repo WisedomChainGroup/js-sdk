@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.bin2hex = exports.uuidv4 = exports.bin2str = exports.toSafeInt = exports.inverse = exports.convert = exports.bytesToF64 = exports.padPrefix = exports.f64ToBytes = exports.trimLeadingZeros = exports.str2bin = exports.normalizeAddress = exports.assertAddress = exports.concatBytes = exports.concatArray = exports.extendPrivateKey = exports.publicKeyHash2Address = exports.address2PublicKeyHash = exports.publicKey2Hash = exports.privateKey2PublicKey = exports.compareBytes = exports.dig2str = exports.hex2bin = exports.assert = exports.rmd160 = exports.digest = void 0;
+exports.bin2hex = exports.uuidv4 = exports.bin2str = exports.toSafeInt = exports.inverse = exports.convert = exports.bytesToF64 = exports.padPrefix = exports.f64ToBytes = exports.trimLeadingZeros = exports.str2bin = exports.normalizeAddress = exports.assertAddress = exports.concatBytes = exports.concatArray = exports.extendPrivateKey = exports.publicKeyHash2Address = exports.address2PublicKeyHash = exports.publicKey2Hash = exports.privateKey2PublicKey = exports.compareBytes = exports.dig2str = exports.hex2bin = exports.assert = exports.rmd160 = exports.digest = exports.isBin = void 0;
 var types_1 = require("./types");
 var nacl = require("../nacl");
 var RMD160 = (new (require('../hashes.js').RMD160));
@@ -9,6 +9,10 @@ var base58_1 = require("./base58");
 var BN = require("../bn");
 RMD160.setUTF8(false);
 var EMPTY_BYTES = new Uint8Array(0);
+function isBin(r) {
+    return r && (r instanceof Uint8Array || r instanceof ArrayBuffer);
+}
+exports.isBin = isBin;
 /**
  * 计算 keccak256哈希
  */
@@ -369,9 +373,9 @@ function convert(o, type) {
             case types_1.ABI_DATA_ENUM.bool: {
                 var l = o.toLowerCase();
                 if ('true' === l)
-                    return 1;
+                    return types_1.ONE;
                 if ('false' === l)
-                    return 0;
+                    return types_1.ZERO;
                 // @ts-ignore
                 if (isNaN(o))
                     throw new Error("cannot convert " + o + " to bool");
@@ -401,7 +405,7 @@ function convert(o, type) {
             }
             case types_1.ABI_DATA_ENUM.bool: {
                 if (1 === o || 0 === o)
-                    return o;
+                    return 1 === o ? types_1.ONE : types_1.ZERO;
                 throw new Error("convert " + o + " to bool failed, provide 1 or 0");
             }
             case types_1.ABI_DATA_ENUM.bytes:
@@ -461,7 +465,7 @@ function convert(o, type) {
             case types_1.ABI_DATA_ENUM.u256:
             case types_1.ABI_DATA_ENUM.i64:
             case types_1.ABI_DATA_ENUM.u64: {
-                return o ? 1 : 0;
+                return o ? types_1.ONE : types_1.ZERO;
             }
             case types_1.ABI_DATA_ENUM.string: {
                 return o.toString();
@@ -471,7 +475,7 @@ function convert(o, type) {
                 throw new Error("cannot convert boolean to address or bytes");
             }
             case types_1.ABI_DATA_ENUM.bool: {
-                return o ? 1 : 0;
+                return o ? types_1.ONE : types_1.ZERO;
             }
             case types_1.ABI_DATA_ENUM.f64: {
                 return f64ToBytes(o ? 1 : 0);

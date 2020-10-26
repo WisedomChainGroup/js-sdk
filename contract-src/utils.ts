@@ -8,7 +8,8 @@ import {
     MAX_U64,
     MIN_I64,
     MIN_SAFE_INTEGER,
-    ONE
+    ONE,
+    ZERO
 } from "./types";
 import nacl = require('../nacl')
 const RMD160 = (new (require('../hashes.js').RMD160))
@@ -18,7 +19,11 @@ import BN = require('../bn')
 
 RMD160.setUTF8(false)
 
-const EMPTY_BYTES = new Uint8Array(0);
+const EMPTY_BYTES = new Uint8Array(0)
+
+export function isBin(r?: any): boolean {
+    return r && (r instanceof Uint8Array || r instanceof ArrayBuffer)
+}
 
 /**
  * 计算 keccak256哈希
@@ -339,7 +344,7 @@ export function bytesToF64(buf: Uint8Array | ArrayBuffer): number {
     return new Float64Array(padPrefix(reverse(buf), 0, 8).buffer)[0]
 }
 
-export function convert(o: AbiInput, type: ABI_DATA_ENUM): string | Uint8Array | BN | number {
+export function convert(o: AbiInput, type: ABI_DATA_ENUM): string | Uint8Array | BN {
     if (o instanceof Uint8Array || o instanceof ArrayBuffer) {
         switch (type) {
             case ABI_DATA_ENUM.bool:
@@ -395,9 +400,9 @@ export function convert(o: AbiInput, type: ABI_DATA_ENUM): string | Uint8Array |
             case ABI_DATA_ENUM.bool: {
                 let l = o.toLowerCase()
                 if ('true' === l)
-                    return 1
+                    return ONE
                 if ('false' === l)
-                    return 0
+                    return ZERO
                 // @ts-ignore
                 if (isNaN(o))
                     throw new Error(`cannot convert ${o} to bool`)
@@ -428,7 +433,7 @@ export function convert(o: AbiInput, type: ABI_DATA_ENUM): string | Uint8Array |
             }
             case ABI_DATA_ENUM.bool: {
                 if (1 === o || 0 === o)
-                    return o
+                    return 1 === o ? ONE : ZERO
                 throw new Error(`convert ${o} to bool failed, provide 1 or 0`)
             }
             case ABI_DATA_ENUM.bytes:
@@ -490,7 +495,7 @@ export function convert(o: AbiInput, type: ABI_DATA_ENUM): string | Uint8Array |
             case ABI_DATA_ENUM.u256:
             case ABI_DATA_ENUM.i64:
             case ABI_DATA_ENUM.u64: {
-                return o ? 1 : 0;
+                return o ? ONE : ZERO;
             }
             case ABI_DATA_ENUM.string: {
                 return o.toString()
@@ -500,7 +505,7 @@ export function convert(o: AbiInput, type: ABI_DATA_ENUM): string | Uint8Array |
                 throw new Error("cannot convert boolean to address or bytes")
             }
             case ABI_DATA_ENUM.bool: {
-                return o ? 1 : 0
+                return o ? ONE : ZERO
             }
             case ABI_DATA_ENUM.f64: {
                 return f64ToBytes(o ? 1 : 0)

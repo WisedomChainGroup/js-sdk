@@ -1,4 +1,4 @@
-import { AbiInput, Binary, Readable, RLPElement, TransactionResult, TX_STATUS, WS_CODES } from "./types";
+import { AbiInput, Binary, Readable, RLPElement, TransactionResult, TX_STATUS, WS_CODES, Event } from "./types";
 import { assert, bin2str, hex2bin, normalizeAddress, toSafeInt, uuidv4 } from "./utils";
 import { byteArrayToInt } from "./rlp";
 import { bin2hex } from "../contract";
@@ -75,19 +75,25 @@ export class RPC {
             WS = require('ws')
 
         if (this.ws && this.ws.readyState === this.ws.OPEN) {
-            return Promise.resolve(null)
+            return Promise.resolve()
         }
 
         if (this.ws) {
             const fn = this.ws.onopen || ((e) => { })
+            const _rj = this.ws.onerror || ((e) => { })
             const p = new Promise((rs, rj) => {
                 this.ws.onopen = (e) => {
                     fn.call(this.ws, e)
                     rs()
                 }
+                this.ws.onerror = (e) => {
+                    _rj.call(this.ws, e)
+                    rj(e)
+                }
             })
             return <Promise<void>>p
         }
+
         this.uuid = uuidv4()
         this.ws = new WS(`ws://${this.host}:${this.port || 80}/websocket/${this.uuid}`)
         this.ws.onerror = console.error
@@ -104,9 +110,11 @@ export class RPC {
             };
             reader.readAsArrayBuffer(e.data)
         }
-        const p = new Promise((rs, rj) => {
-            this.ws.onopen = rs
-        }
+        const p = new Promise(
+            (rs, rj) => {
+                this.ws.onopen = rs
+                this.ws.onerror = rj
+            }
         )
         return <Promise<void>>p
     }
@@ -154,7 +162,7 @@ export class RPC {
         return r
     }
 
-    private handleData(data) {
+    private handleData(data): void {
         const r = this.parse(data)
 
         switch (r.code) {
@@ -188,10 +196,6 @@ export class RPC {
 
     /**
      * 监听合约事件
-     * @param {Contract} contract 合约
-     * @param {string} event 事件
-     * @param {Function} func 合约事件回调 {name: event, data: data}
-     * @returns {number} 监听器的 id
      */
     private __listen(contract: Contract, event: string, func: (e: Dict<Readable>) => void) {
         const addr = normalizeAddress(contract.address)
@@ -367,19 +371,21 @@ export class RPC {
                     }
 
                     if (
+                        resp.events &&
                         resp.events.length
                         && tx.__abi) {
-                        const events = []
+                        const events: Event[] = []
                         for (let e of resp.events) {
                             const name = bin2str(e[0])
                             const decoded = (new Contract('', tx.__abi)).abiDecode(name, e[1], 'event')
-                            events.push({ name: name, data: decoded })
+                            events.push({ name: name, data: <Dict<Readable>>decoded })
                         }
                         ret.events = events
                     }
 
                     ret.transactionHash = bin2hex(tx.getHash())
                     ret.fee = toSafeInt((new BN(tx.gasPrice).mul(new BN(ret.gasUsed))))
+
                     if (tx.isDeployOrCall()) {
                         ret.method = tx.getMethod()
                         ret.inputs = tx.__inputs
@@ -417,18 +423,15 @@ export class RPC {
     /**
      * 发送事务的同时监听事务的状态
      */
-    sendAndObserve(tx: Transaction, status: TX_STATUS.INCLUDED | TX_STATUS.CONFIRMED, timeout: number): Promise<TransactionResult> {
-        let ret
-        let p
-        let sub
+    sendAndObserve(tx: Transaction, status: TX_STATUS.INCLUDED | TX_STATUS.CONFIRMED, timeout: number): Promise<TransactionResult | TransactionResult[]> {
+        let ret: Promise<TransactionResult | TransactionResult[]>
+        let sub: Promise<Resp>
         if (Array.isArray(tx)) {
-            p = []
-            const arr = []
+            const arr: Promise<TransactionResult>[] = []
             sub = this.wsRpc(WS_CODES.TRANSACTION_SUBSCRIBE, tx.map(t => hex2bin(t.getHash())))
             for (const t of tx) {
                 arr.push(this.observe(t, status, timeout))
             }
-            p = Promise.all(p)
             ret = Promise.all(arr)
         } else {
             sub = this.wsRpc(WS_CODES.TRANSACTION_SUBSCRIBE, hex2bin(tx.getHash()))

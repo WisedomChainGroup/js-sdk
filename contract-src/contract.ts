@@ -29,7 +29,7 @@ import rlp = require('./rlp')
 /**
  * 计算合约地址
  */
-export function getContractAddress(hash: Binary) {
+export function getContractAddress(hash: Binary): string {
     let buf = rlp.encode([hex2bin(hash), 0])
     buf = rmd160(buf)
     return publicKeyHash2Address(buf)
@@ -58,8 +58,7 @@ export function compileContract(ascPath: string, src: string, opts?: { debug?: b
 }
 
 /**
- *
- * @param { ArrayBuffer | Uint8Array | string } str
+ * 编译合约 ABI
  */
 export function compileABI(_str: Binary): ABI[] {
     let str = bin2str(_str)
@@ -337,11 +336,11 @@ export class Contract {
             return [types, arr, retTypes]
         }
 
-        const arr = []
-        const types = []
+        const arr: Array<string | Uint8Array | BN> = []
+        const types: ABI_DATA_ENUM[] = []
         for (let i = 0; i < func.inputs.length; i++) {
             const input = func.inputs[i]
-            types[i] = ABI_DATA_ENUM[func.inputs[i].type]
+            types[i] = ABI_DATA_TYPE_TABLE.indexOf(func.inputs[i].type)
             if (!(input.name in li)) {
                 throw new Error(`key ${input.name} not found in parameters`)
             }

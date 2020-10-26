@@ -1,7 +1,7 @@
 /**
  * 事务
  */
-import { ABI_DATA_ENUM, ABI_TYPE, Binary, constants, Digital, Readable } from "./types";
+import { AbiInput, ABI_DATA_ENUM, Binary, constants, Digital, Readable } from "./types";
 import { bin2str, concatArray, convert, dig2str, digest, extendPrivateKey, hex2bin, padPrefix, toSafeInt } from "./utils";
 import { bin2hex } from "../contract";
 import BN = require("../bn");
@@ -23,6 +23,7 @@ export class Transaction implements Encoder {
     signature: string
     __abi?: ABI[]
     __inputs?: Readable[] | Dict<Readable>
+
     /**
      * constructor of transaction
      */
@@ -54,7 +55,7 @@ export class Transaction implements Encoder {
     /**
      * 生成事务签名或者哈希值计算需要的原文
      */
-    getRaw(nullSig: boolean) {
+    getRaw(nullSig: boolean): Uint8Array {
         let sig = nullSig ? new Uint8Array(64) : hex2bin(this.signature)
         const p = hex2bin(this.payload)
         return concatArray(
@@ -75,14 +76,13 @@ export class Transaction implements Encoder {
 
     /**
      * rlp 编码结果
-     * @returns { Uint8Array }
      */
     getEncoded(): Uint8Array {
         const arr = this.__toArr()
         return rlp.encode(arr)
     }
 
-    __toArr(): Array<string | Uint8Array | BN | number> {
+    __toArr(): Array<string | Uint8Array | BN> {
         return [
             convert(this.version || 0, ABI_DATA_ENUM.u64),
             convert(this.type || 0, ABI_DATA_ENUM.u64),
@@ -105,8 +105,8 @@ export class Transaction implements Encoder {
         this.signature = bin2hex(nacl.sign(this.getRaw(true), sk).slice(0, 64))
     }
 
-    __setInputs(__inputs): void {
-        const cnv = (x) => {
+    __setInputs(__inputs: AbiInput[] | Dict<AbiInput>): void {
+        const cnv: (x: AbiInput) => Readable = (x) => {
             if (x instanceof ArrayBuffer || x instanceof Uint8Array)
                 return bin2hex(x)
             if (x instanceof BN)

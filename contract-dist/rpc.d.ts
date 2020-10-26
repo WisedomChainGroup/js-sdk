@@ -32,10 +32,6 @@ export declare class RPC {
     private handleData;
     /**
      * 监听合约事件
-     * @param {Contract} contract 合约
-     * @param {string} event 事件
-     * @param {Function} func 合约事件回调 {name: event, data: data}
-     * @returns {number} 监听器的 id
      */
     private __listen;
     listen(contract: Contract, event: string, func?: (e: Dict<Readable>) => void): Promise<Dict<Readable>>;
@@ -68,7 +64,7 @@ export declare class RPC {
     /**
      * 发送事务的同时监听事务的状态
      */
-    sendAndObserve(tx: Transaction, status: TX_STATUS.INCLUDED | TX_STATUS.CONFIRMED, timeout: number): Promise<TransactionResult>;
+    sendAndObserve(tx: Transaction, status: TX_STATUS.INCLUDED | TX_STATUS.CONFIRMED, timeout: number): Promise<TransactionResult | TransactionResult[]>;
     /**
      * 获取 nonce
      */

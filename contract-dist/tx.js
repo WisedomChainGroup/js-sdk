@@ -58,7 +58,6 @@ var Transaction = /** @class */ (function () {
     };
     /**
      * rlp 编码结果
-     * @returns { Uint8Array }
      */
     Transaction.prototype.getEncoded = function () {
         var arr = this.__toArr();

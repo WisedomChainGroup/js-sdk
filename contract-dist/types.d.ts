@@ -1,5 +1,6 @@
+/// <reference types="node" />
 import BN = require("../bn");
-import { Event } from "../contract";
+import Dict = NodeJS.Dict;
 export declare type Digital = string | number | BN;
 export declare type Readable = string | number | boolean;
 export declare type AbiInput = string | number | boolean | ArrayBuffer | Uint8Array | BN;
@@ -8,6 +9,13 @@ export declare type Binary = string | Uint8Array | ArrayBuffer;
 export declare type ABI_DATA_TYPE = 'bool' | 'i64' | 'u64' | 'f64' | 'string' | 'bytes' | 'address' | 'u256';
 export declare const ABI_DATA_TYPE_TABLE: ABI_DATA_TYPE[];
 export declare type ABI_TYPE = 'function' | 'event';
+/**
+ * 合约事件
+ */
+export interface Event {
+    name: string;
+    data: Dict<Readable>;
+}
 export interface TransactionResult {
     blockHeight: number | string;
     blockHash: string;

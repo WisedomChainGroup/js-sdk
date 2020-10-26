@@ -1,5 +1,5 @@
-import { AbiInput, Binary, constants, Digital, ONE } from "./types";
-import { dig2str, assert, privateKey2PublicKey, normalizeAddress } from "./utils";
+import { AbiInput, Binary, constants, Digital, ONE, ABI_DATA_ENUM } from "./types";
+import { dig2str, assert, privateKey2PublicKey, normalizeAddress, isBin, hex2bin } from "./utils";
 import { bin2hex } from "../contract";
 import BN = require("../bn");
 import Dict = NodeJS.Dict;
@@ -17,12 +17,12 @@ export class TransactionBuilder {
     constructor(version?: Digital, sk?: Binary, gasLimit?: Digital, gasPrice?: Digital, nonce?: Digital) {
         this.version = dig2str(version || '1')
         this.sk = bin2hex(sk || '')
-        this.gasPrice = dig2str(gasPrice || 0)
+        this.gasPrice = dig2str(gasPrice || 200000)
         this.nonce = dig2str(nonce || 0)
         this.gasLimit = dig2str(gasLimit || 0)
     }
 
-    increaseNonce() {
+    increaseNonce(): void {
         let nonce = new BN(this.nonce)
         nonce = nonce.add(ONE)
         this.nonce = nonce.toString(10)
@@ -32,26 +32,22 @@ export class TransactionBuilder {
      * 构造部署合约的事务
      */
     buildDeploy(contract: Contract, _parameters?: AbiInput | AbiInput[] | Dict<AbiInput>, amount?: Digital): Transaction {
-        if (!(contract instanceof Contract))
-            throw new Error('create a instanceof Contract by new tool.Contract(addr, abi)')
-
-        assert(contract.binary, 'contract binary is uint8 array')
-
-        if (!contract.abi)
-            throw new Error('missing contract abi')
-
+        assert(contract instanceof Contract, 'create a instanceof Contract by new tool.Contract(addr, abi)')
+        assert(isBin(contract.binary), 'contract binary should be uint8 array')
+        assert(contract.abi, 'missing contract abi')
 
         let parameters = normalizeParams(_parameters)
-        let inputs
+        let inputs: [ABI_DATA_ENUM[], Array<string | Uint8Array | BN>, ABI_DATA_ENUM[]]
         const binary = contract.binary
+
         if (contract.abi.filter(x => x.name === 'init').length > 0)
             inputs = contract.abiEncode('init', parameters)
         else
             inputs = [[], [], []]
 
-        const ret = this.buildCommon(constants.WASM_DEPLOY, amount, rlp.encode([this.gasLimit || 0, binary, parameters, contract.abiToBinary()]), new Uint8Array(20))
+        const ret = this.buildCommon(constants.WASM_DEPLOY, amount, rlp.encode([this.gasLimit || 0, hex2bin(binary), inputs, contract.abiToBinary()]), new Uint8Array(20))
         ret.__abi = contract.abi
-        ret.__setInputs(inputs)
+        ret.__setInputs(parameters)
         return ret
     }
 
@@ -63,15 +59,10 @@ export class TransactionBuilder {
      * @param amount [number] 金额
      * @returns { Transaction }
      */
-    buildContractCall(contract: Contract, method: string, _parameters?: AbiInput | AbiInput[] | Dict<AbiInput>, amount?: Digital) {
-        if (!(contract instanceof Contract))
-            throw new Error('create a instanceof Contract by new tool.Contract(addr, abi)')
-
-        if (!contract.abi)
-            throw new Error('missing contract abi')
-
-        if (!contract.address)
-            throw new Error('missing contract address')
+    buildContractCall(contract: Contract, method: string, _parameters?: AbiInput | AbiInput[] | Dict<AbiInput>, amount?: Digital): Transaction {
+        assert(contract instanceof Contract, 'create a instanceof Contract by new tool.Contract(addr, abi)')
+        assert(contract.abi, 'missing contract abi')
+        assert(contract.address, 'missing contract address')
 
         let parameters = normalizeParams(_parameters)
 
@@ -80,14 +71,14 @@ export class TransactionBuilder {
 
         const ret = this.buildCommon(constants.WASM_CALL, amount, rlp.encode([this.gasLimit || 0, method, inputs]), bin2hex(addr))
         ret.__abi = contract.abi
-        ret.__setInputs(inputs)
+        ret.__setInputs(parameters)
         return ret
     }
 
     /**
      * 创建事务
      */
-    buildCommon(type: Digital, amount: Digital, payload: Binary, to: Binary) {
+    buildCommon(type: Digital, amount: Digital, payload: Binary, to: Binary): Transaction {
         const ret = new Transaction(
             this.version,
             type,
@@ -96,7 +87,7 @@ export class TransactionBuilder {
             this.gasPrice,
             amount || 0,
             payload || '',
-            normalizeAddress(to)
+            to
         )
 
         if (this.nonce) {
