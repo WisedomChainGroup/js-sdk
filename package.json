@@ -50,6 +50,9 @@
   },
   "version": "0.4.6-beta",
   "devDependencies": {
-    "ws": "^7.3.1"
+    "ws": "^7.3.1",
+    "@types/node": "^14.14.2",
+    "ts-node": "^9.0.0",
+    "typescript": "^4.0.3"
   }
 }
