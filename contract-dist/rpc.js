@@ -29,7 +29,7 @@ var RPC = /** @class */ (function () {
     RPC.prototype.tryConnect = function () {
         var _this = this;
         var WS;
-        if (typeof WebSocket === 'string')
+        if (typeof WebSocket === 'function')
             WS = WebSocket;
         else
             WS = require('ws');

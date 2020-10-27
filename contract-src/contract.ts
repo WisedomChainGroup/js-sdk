@@ -20,7 +20,7 @@ import {
     padPrefix,
     publicKeyHash2Address,
     toSafeInt,
-    rmd160
+    rmd160, normalizeAddress
 } from "./utils"
 import BN = require("../bn")
 import { bin2hex } from "./utils"
@@ -306,7 +306,7 @@ export class Contract {
     binary: Uint8Array
     constructor(address?: Binary, abi?: ABI[], binary?: ArrayBuffer | Uint8Array) {
         if (address)
-            this.address = bin2hex(address)
+            this.address = bin2hex(normalizeAddress(address))
         this.abi = (abi || []).map(ABI.from)
         if (binary)
             this.binary = hex2bin(binary)

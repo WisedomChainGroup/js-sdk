@@ -1,20 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 </head>
+
 <body>
-    <script src="./nacl.min.js"></script>
-    <script src="./hashes.min.js"></script>
-    <script src="./sha3.js"></script>
-    <script src="./bn.js"></script>
-    <script src="./contract.js"></script>
+    <script src="./contract-dist/bundle.js"></script>
+    <script src="./local/coin.abi.js"></script>
     <script>
-        window.onload = function(){
-            const tool = window.contractTool
+        window.onload = function () {
+            const t = keystore_wdc_contract
+            const rpc = new t.RPC('8.210.39.91', 19585)
+            const c = new t.Contract('1HnbSn23tVpa1dcchnSrzsTd7aCzaSC2NY', coinABI)
         }
     </script>
 </body>
+
 </html>

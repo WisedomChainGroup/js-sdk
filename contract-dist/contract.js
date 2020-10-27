@@ -238,7 +238,7 @@ function abiDecode(outputs, buf) {
 var Contract = /** @class */ (function () {
     function Contract(address, abi, binary) {
         if (address)
-            this.address = utils_2.bin2hex(address);
+            this.address = utils_2.bin2hex(utils_1.normalizeAddress(address));
         this.abi = (abi || []).map(ABI.from);
         if (binary)
             this.binary = utils_1.hex2bin(binary);

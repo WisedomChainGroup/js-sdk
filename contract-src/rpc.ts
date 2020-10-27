@@ -69,7 +69,7 @@ export class RPC {
     private tryConnect(): Promise<void> {
         let WS: new (url: string) => WebSocket
 
-        if (typeof WebSocket === 'string')
+        if (typeof WebSocket === 'function')
             WS = WebSocket
         else
             WS = require('ws')
