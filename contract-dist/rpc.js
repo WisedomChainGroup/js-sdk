@@ -244,7 +244,7 @@ var RPC = /** @class */ (function () {
             utils_1.normalizeAddress(addr),
             method,
             params
-        ]).then(function (r) { return contract.abiDecode(method, r.body); });
+        ]).then(function (r) { return contract.abiDecode(method, rlp.decode(r.body)); });
     };
     /**
      * 通过 websocket 发送事务

@@ -13,8 +13,12 @@
     <script>
         window.onload = function () {
             const t = keystore_wdc_contract
+            const sk = 'f0d55ae8a79186e8595514fe23dec8716a191d2bb525998298371693dc69a926'
+            const addr = t.publicKeyHash2Address(t.publicKey2Hash(t.privateKey2PublicKey(sk)))
             const rpc = new t.RPC('8.210.39.91', 19585)
             const c = new t.Contract('1HnbSn23tVpa1dcchnSrzsTd7aCzaSC2NY', coinABI)
+            rpc.viewContract(c, 'balanceOf', addr)
+                .then(console.log)
         }
     </script>
 </body>

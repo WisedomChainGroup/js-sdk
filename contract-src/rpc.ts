@@ -307,7 +307,7 @@ export class RPC {
             normalizeAddress(addr),
             method,
             params
-        ]).then(r => <Readable>contract.abiDecode(method, <Uint8Array[]>r.body))
+        ]).then(r => <Readable>contract.abiDecode(method, <Uint8Array[]> rlp.decode(r.body as Uint8Array)))
     }
 
     /**
