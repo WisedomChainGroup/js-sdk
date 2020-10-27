@@ -1,12 +1,12 @@
-import { RLPElement } from "./types";
+import { RLPElement } from "./types"
 import {assert} from './utils'
 
-const OFFSET_SHORT_ITEM = 0x80;
-const SIZE_THRESHOLD = 56;
-const OFFSET_LONG_ITEM = 0xb7;
-const OFFSET_SHORT_LIST = 0xc0;
-const OFFSET_LONG_LIST = 0xf7;
-const EMPTY_BYTES = new Uint8Array(0);
+const OFFSET_SHORT_ITEM = 0x80
+const SIZE_THRESHOLD = 56
+const OFFSET_LONG_ITEM = 0xb7
+const OFFSET_SHORT_LIST = 0xc0
+const OFFSET_LONG_LIST = 0xf7
+const EMPTY_BYTES = new Uint8Array(0)
 const EMPTY_RLP_ARRAY = new Uint8Array([0xc0])
 const NULL_RLP = new Uint8Array([0x80])
 

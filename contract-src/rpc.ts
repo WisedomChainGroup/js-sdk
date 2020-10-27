@@ -1,12 +1,12 @@
-import { AbiInput, Binary, Readable, RLPElement, TransactionResult, TX_STATUS, WS_CODES, Event } from "./types";
-import { assert, bin2str, hex2bin, normalizeAddress, toSafeInt, uuidv4 } from "./utils";
-import { byteArrayToInt } from "./rlp";
-import { bin2hex } from "../contract";
-import { Contract, normalizeParams } from "./contract";
-import { Transaction } from "./tx";
-import rlp = require('./rlp');
-import BN = require("../bn");
-import Dict = NodeJS.Dict;
+import { AbiInput, Binary, Readable, RLPElement, TransactionResult, TX_STATUS, WS_CODES, Event } from "./types"
+import { assert, bin2str, hex2bin, normalizeAddress, toSafeInt, uuidv4 } from "./utils"
+import { byteArrayToInt } from "./rlp"
+import { bin2hex } from "../contract"
+import { Contract, normalizeParams } from "./contract"
+import { Transaction } from "./tx"
+import rlp = require('./rlp')
+import BN = require("../bn")
+import Dict = NodeJS.Dict
 
 export interface Resp {
     code: WS_CODES
@@ -102,12 +102,12 @@ export class RPC {
                 this.handleData(e.data)
                 return
             }
-            const reader = new FileReader();
+            const reader = new FileReader()
 
             reader.onload = () => {
                 const arrayBuffer = reader.result
                 this.handleData(new Uint8Array(<ArrayBuffer>arrayBuffer))
-            };
+            }
             reader.readAsArrayBuffer(e.data)
         }
         const p = new Promise(

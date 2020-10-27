@@ -1,10 +1,10 @@
-import { AbiInput, Binary, constants, Digital, ONE, ABI_DATA_ENUM } from "./types";
-import { dig2str, assert, privateKey2PublicKey, normalizeAddress, isBin, hex2bin } from "./utils";
-import { bin2hex } from "../contract";
-import BN = require("../bn");
-import Dict = NodeJS.Dict;
-import { Contract, normalizeParams } from "./contract";
-import { Transaction } from "./tx";
+import { AbiInput, Binary, constants, Digital, ONE, ABI_DATA_ENUM } from "./types"
+import { dig2str, assert, privateKey2PublicKey, normalizeAddress, isBin, hex2bin } from "./utils"
+import { bin2hex } from "../contract"
+import BN = require("../bn")
+import Dict = NodeJS.Dict
+import { Contract, normalizeParams } from "./contract"
+import { Transaction } from "./tx"
 import rlp = require('./rlp')
 
 export class TransactionBuilder {

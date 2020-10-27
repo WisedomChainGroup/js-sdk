@@ -7,8 +7,8 @@ import {
     Binary, MAX_U256,
     MAX_U64, ONE,
     Readable
-} from "./types";
-import Dict = NodeJS.Dict;
+} from "./types"
+import Dict = NodeJS.Dict
 import child_process = require('child_process')
 import {
     assert,
@@ -21,9 +21,9 @@ import {
     publicKeyHash2Address,
     toSafeInt,
     rmd160
-} from "./utils";
-import BN = require("../bn");
-import { bin2hex } from "../contract";
+} from "./utils"
+import BN = require("../bn")
+import { bin2hex } from "../contract"
 import rlp = require('./rlp')
 
 /**
@@ -53,7 +53,7 @@ export function compileContract(ascPath: string, src: string, opts?: { debug?: b
                 }
                 resolve(stdout)
             }
-        );
+        )
     })
 }
 
@@ -267,7 +267,7 @@ function abiDecode(outputs: TypeDef[], buf?: Uint8Array[]): Readable[] | Dict<Re
             case 'i64': {
                 let n
                 const padded = padPrefix(arr[i], 0, 8)
-                const isneg = padded[0] & 0x80;
+                const isneg = padded[0] & 0x80
                 if (!isneg) {
                     n = new BN(arr[i])
                 } else {

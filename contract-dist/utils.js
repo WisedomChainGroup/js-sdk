@@ -4,7 +4,7 @@ exports.bin2hex = exports.uuidv4 = exports.bin2str = exports.toSafeInt = exports
 var types_1 = require("./types");
 var nacl = require("../nacl.min.js");
 var RMD160 = (new (require('../hashes.js').RMD160));
-var _keccak256 = require('./sha3.js').keccak256;
+var _keccak256 = require('../sha3.js').keccak256;
 var base58_1 = require("./base58");
 var BN = require("../bn");
 RMD160.setUTF8(false);
