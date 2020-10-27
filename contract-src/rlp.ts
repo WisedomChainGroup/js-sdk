@@ -20,8 +20,6 @@ export interface Encoder {
 
 /**
  * 字节数组转 number
- * @param {Uint8Array | ArrayBuffer} bytes
- * @returns {number}
  */
 export function byteArrayToInt(bytes: ArrayBuffer | Uint8Array): number {
     let arr = hex2bin(bytes)
@@ -36,8 +34,6 @@ export function byteArrayToInt(bytes: ArrayBuffer | Uint8Array): number {
 
 /**
  * number 转字节数组
- * @param {number} u
- * @returns {Uint8Array}
  */
 export function numberToByteArray(u: number): Uint8Array {
     if (u < 0 || !Number.isInteger(u))
@@ -59,7 +55,7 @@ export function numberToByteArray(u: number): Uint8Array {
 
 
 
-function isRLPList(encoded) {
+function isRLPList(encoded: Uint8Array): boolean{
     return encoded[0] >= OFFSET_SHORT_LIST;
 }
 
@@ -109,8 +105,6 @@ function encodeBytes(b: ArrayBuffer | Uint8Array): Uint8Array {
 
 /**
  * encode elements to rlp list
- * @param { Array<Uint8Array> } elements
- * @returns { Uint8Array } rlp encoded
  */
 export function encodeElements(elements: Uint8Array[]): Uint8Array {
     let totalLength = 0;
@@ -181,7 +175,7 @@ export function encodeString(s: string): Uint8Array {
     return encodeBytes(str2bin(s))
 }
 
-export function encode(o: string | any[] | number | null | BN | Uint8Array | ArrayBuffer | Encoder | boolean): Uint8Array {
+export function encode(o?: string | any[] | number | null | BN | Uint8Array | ArrayBuffer | Encoder | boolean): Uint8Array {
     if (o && (typeof (<Encoder>o).getEncoded === 'function')) {
         return (<Encoder>o).getEncoded()
     }

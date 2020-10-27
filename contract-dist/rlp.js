@@ -14,8 +14,6 @@ var utils_2 = require("./utils");
 var BN = require("../bn");
 /**
  * 字节数组转 number
- * @param {Uint8Array | ArrayBuffer} bytes
- * @returns {number}
  */
 function byteArrayToInt(bytes) {
     var arr = utils_2.hex2bin(bytes);
@@ -29,8 +27,6 @@ function byteArrayToInt(bytes) {
 exports.byteArrayToInt = byteArrayToInt;
 /**
  * number 转字节数组
- * @param {number} u
- * @returns {Uint8Array}
  */
 function numberToByteArray(u) {
     if (u < 0 || !Number.isInteger(u))
@@ -94,8 +90,6 @@ function encodeBytes(b) {
 }
 /**
  * encode elements to rlp list
- * @param { Array<Uint8Array> } elements
- * @returns { Uint8Array } rlp encoded
  */
 function encodeElements(elements) {
     var totalLength = 0;

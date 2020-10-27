@@ -233,10 +233,6 @@ var RPC = /** @class */ (function () {
     };
     /**
      * 查看合约方法
-     * @param  { Contract } contract 合约
-     * @param {string} method  查看的方法
-     * @param { Object | Array } parameters  额外的参数，字节数组，参数列表
-     * @returns {Promise<Object>}
      */
     RPC.prototype.viewContract = function (contract, method, parameters) {
         if (!(contract instanceof contract_2.Contract))
@@ -252,8 +248,7 @@ var RPC = /** @class */ (function () {
     };
     /**
      * 通过 websocket 发送事务
-     * @param tx {Transaction | Array<Transaction> }事务
-     * @returns {Promise<Object>}
+     * @param tx 事务
      */
     RPC.prototype.sendTransaction = function (tx) {
         return this.wsRpc(types_1.WS_CODES.TRANSACTION_SEND, [Array.isArray(tx), tx])

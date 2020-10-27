@@ -294,10 +294,6 @@ export class RPC {
 
     /**
      * 查看合约方法
-     * @param  { Contract } contract 合约
-     * @param {string} method  查看的方法
-     * @param { Object | Array } parameters  额外的参数，字节数组，参数列表
-     * @returns {Promise<Object>}
      */
     viewContract(contract: Contract, method: string, parameters?: AbiInput | AbiInput[] | Dict<AbiInput>): Promise<Readable> {
         if (!(contract instanceof Contract))
@@ -316,10 +312,9 @@ export class RPC {
 
     /**
      * 通过 websocket 发送事务
-     * @param tx {Transaction | Array<Transaction> }事务
-     * @returns {Promise<Object>}
+     * @param tx 事务
      */
-    sendTransaction(tx): Promise<void> {
+    sendTransaction(tx: Transaction | Transaction[]): Promise<void> {
         return this.wsRpc(WS_CODES.TRANSACTION_SEND, [Array.isArray(tx), tx])
             .then(() => Promise.resolve())
     }
@@ -423,7 +418,7 @@ export class RPC {
     /**
      * 发送事务的同时监听事务的状态
      */
-    sendAndObserve(tx: Transaction, status: TX_STATUS.INCLUDED | TX_STATUS.CONFIRMED, timeout: number): Promise<TransactionResult | TransactionResult[]> {
+    sendAndObserve(tx: Transaction | Transaction[], status: TX_STATUS.INCLUDED | TX_STATUS.CONFIRMED, timeout: number): Promise<TransactionResult | TransactionResult[]> {
         let ret: Promise<TransactionResult | TransactionResult[]>
         let sub: Promise<Resp>
         if (Array.isArray(tx)) {

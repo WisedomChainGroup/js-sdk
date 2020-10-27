@@ -47,24 +47,19 @@ export declare class RPC {
     private __observe;
     /**
      * 查看合约方法
-     * @param  { Contract } contract 合约
-     * @param {string} method  查看的方法
-     * @param { Object | Array } parameters  额外的参数，字节数组，参数列表
-     * @returns {Promise<Object>}
      */
     viewContract(contract: Contract, method: string, parameters?: AbiInput | AbiInput[] | Dict<AbiInput>): Promise<Readable>;
     /**
      * 通过 websocket 发送事务
-     * @param tx {Transaction | Array<Transaction> }事务
-     * @returns {Promise<Object>}
+     * @param tx 事务
      */
-    sendTransaction(tx: any): Promise<void>;
+    sendTransaction(tx: Transaction | Transaction[]): Promise<void>;
     observe(tx: Transaction, status: TX_STATUS.INCLUDED | TX_STATUS.CONFIRMED, timeout: number): Promise<TransactionResult>;
     private wsRpc;
     /**
      * 发送事务的同时监听事务的状态
      */
-    sendAndObserve(tx: Transaction, status: TX_STATUS.INCLUDED | TX_STATUS.CONFIRMED, timeout: number): Promise<TransactionResult | TransactionResult[]>;
+    sendAndObserve(tx: Transaction | Transaction[], status: TX_STATUS.INCLUDED | TX_STATUS.CONFIRMED, timeout: number): Promise<TransactionResult | TransactionResult[]>;
     /**
      * 获取 nonce
      */
