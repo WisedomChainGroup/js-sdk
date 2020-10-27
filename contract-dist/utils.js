@@ -234,7 +234,7 @@ exports.normalizeAddress = normalizeAddress;
  * @returns {boolean}
  */
 function isHex(hex) {
-    if (typeof hex === 'string' && hex.startsWith('0x'))
+    if (hex.startsWith('0x'))
         hex = hex.substr(2);
     if (hex.length % 2 !== 0)
         return false;
@@ -539,8 +539,7 @@ function uuidv4() {
 }
 exports.uuidv4 = uuidv4;
 function bin2hex(s) {
-    if (typeof s === 'string' && s.startsWith('0x')) {
-        s = s.substr(2);
+    if (typeof s === 'string') {
         assert(isHex(s), 'hex string');
         return s;
     }

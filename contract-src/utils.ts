@@ -258,7 +258,7 @@ export function normalizeAddress(_addr: Binary): Uint8Array {
  * @returns {boolean}
  */
 function isHex(hex: string): boolean {
-    if (typeof hex === 'string' && hex.startsWith('0x'))
+    if (hex.startsWith('0x'))
         hex = hex.substr(2)
     if (hex.length % 2 !== 0)
         return false
@@ -570,8 +570,7 @@ export function uuidv4() {
 }
 
 export function bin2hex(s: Binary): string {
-    if (typeof s === 'string' && s.startsWith('0x')) {
-        s = s.substr(2)
+    if (typeof s === 'string') {
         assert(isHex(s), 'hex string')
         return s
     }
