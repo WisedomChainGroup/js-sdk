@@ -60,7 +60,7 @@ var TransactionBuilder = /** @class */ (function () {
         var parameters = contract_1.normalizeParams(_parameters);
         var addr = utils_1.normalizeAddress(contract.address);
         var inputs = contract.abiEncode(method, parameters);
-        var ret = this.buildCommon(types_1.constants.WASM_CALL, amount, rlp.encode([this.gasLimit || 0, method, inputs]), utils_2.bin2hex(addr));
+        var ret = this.buildCommon(types_1.constants.WASM_CALL, amount, rlp.encode([utils_2.convert(this.gasLimit || 0, types_1.ABI_DATA_ENUM.u256), method, inputs]), utils_2.bin2hex(addr));
         ret.__abi = contract.abi;
         ret.__setInputs(parameters);
         return ret;

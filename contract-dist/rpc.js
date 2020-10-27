@@ -106,6 +106,7 @@ var RPC = /** @class */ (function () {
                 var ret = r;
                 ret.addr = utils_2.bin2hex(body[0]);
                 ret.name = utils_1.bin2str(body[1]);
+                ret.fields = body[2];
                 return ret;
             }
         }
@@ -152,7 +153,7 @@ var RPC = /** @class */ (function () {
         var key = addrHex + ":" + event;
         this.id2key.set(id, key);
         var fn = function (e) {
-            var abiDecoded = contract.abiDecode(event, e.body, 'event');
+            var abiDecoded = contract.abiDecode(event, e.fields, 'event');
             func(abiDecoded);
         };
         if (!this.eventHandlers.has(key))

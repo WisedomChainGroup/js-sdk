@@ -155,6 +155,7 @@ export class RPC {
                 let ret: EventResp = <EventResp>r
                 ret.addr = bin2hex(<Uint8Array>body[0])
                 ret.name = bin2str(<Uint8Array>body[1])
+                ret.fields = <Uint8Array[]> (<RLPElement[]>body)[2]
                 return ret
             }
         }
@@ -206,7 +207,7 @@ export class RPC {
         this.id2key.set(id, key)
 
         const fn: (e: EventResp) => void = (e) => {
-            const abiDecoded = contract.abiDecode(event, <Uint8Array[]>e.body, 'event')
+            const abiDecoded = contract.abiDecode(event, <Uint8Array[]>e.fields, 'event')
             func(<Dict<Readable>>abiDecoded)
         }
 
@@ -320,7 +321,7 @@ export class RPC {
     }
 
 
-    observe(tx: Transaction, status: TX_STATUS.INCLUDED | TX_STATUS.CONFIRMED, timeout: number): Promise<TransactionResult> {
+    observe(tx: Transaction, status: TX_STATUS.INCLUDED | TX_STATUS.CONFIRMED, timeout?: number): Promise<TransactionResult> {
         status = status === undefined ? TX_STATUS.CONFIRMED : status
         return new Promise((resolve, reject) => {
             let success = false
@@ -418,7 +419,7 @@ export class RPC {
     /**
      * 发送事务的同时监听事务的状态
      */
-    sendAndObserve(tx: Transaction | Transaction[], status: TX_STATUS.INCLUDED | TX_STATUS.CONFIRMED, timeout: number): Promise<TransactionResult | TransactionResult[]> {
+    sendAndObserve(tx: Transaction | Transaction[], status: TX_STATUS.INCLUDED | TX_STATUS.CONFIRMED, timeout?: number): Promise<TransactionResult | TransactionResult[]> {
         let ret: Promise<TransactionResult | TransactionResult[]>
         let sub: Promise<Resp>
         if (Array.isArray(tx)) {

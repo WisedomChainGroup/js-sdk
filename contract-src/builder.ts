@@ -74,7 +74,7 @@ export class TransactionBuilder {
         const addr = normalizeAddress(contract.address)
         let inputs = contract.abiEncode(method, parameters)
 
-        const ret = this.buildCommon(constants.WASM_CALL, amount, rlp.encode([this.gasLimit || 0, method, inputs]), bin2hex(addr))
+        const ret = this.buildCommon(constants.WASM_CALL, amount, rlp.encode([convert(this.gasLimit || 0, ABI_DATA_ENUM.u256), method, inputs]), bin2hex(addr))
         ret.__abi = contract.abi
         ret.__setInputs(parameters)
         return ret
