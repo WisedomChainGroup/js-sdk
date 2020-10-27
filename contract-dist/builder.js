@@ -35,7 +35,12 @@ var TransactionBuilder = /** @class */ (function () {
             inputs = contract.abiEncode('init', parameters);
         else
             inputs = [[], [], []];
-        var ret = this.buildCommon(types_1.constants.WASM_DEPLOY, amount, rlp.encode([this.gasLimit || 0, utils_1.hex2bin(binary), inputs, contract.abiToBinary()]), new Uint8Array(20));
+        var ret = this.buildCommon(types_1.constants.WASM_DEPLOY, amount, rlp.encode([
+            utils_2.convert(this.gasLimit || 0, types_1.ABI_DATA_ENUM.u256),
+            utils_1.hex2bin(binary),
+            inputs,
+            contract.abiToBinary()
+        ]), new Uint8Array(20));
         ret.__abi = contract.abi;
         ret.__setInputs(parameters);
         return ret;

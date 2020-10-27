@@ -1,6 +1,6 @@
 import { AbiInput, Binary, constants, Digital, ONE, ABI_DATA_ENUM } from "./types"
 import { dig2str, assert, privateKey2PublicKey, normalizeAddress, isBin, hex2bin } from "./utils"
-import { bin2hex } from "./utils"
+import { bin2hex, convert} from "./utils"
 import BN = require("../bn")
 import Dict = NodeJS.Dict
 import { Contract, normalizeParams } from "./contract"
@@ -45,7 +45,12 @@ export class TransactionBuilder {
         else
             inputs = [[], [], []]
 
-        const ret = this.buildCommon(constants.WASM_DEPLOY, amount, rlp.encode([this.gasLimit || 0, hex2bin(binary), inputs, contract.abiToBinary()]), new Uint8Array(20))
+        const ret = this.buildCommon(constants.WASM_DEPLOY, amount, rlp.encode([
+            convert(this.gasLimit || 0, ABI_DATA_ENUM.u256), 
+            hex2bin(binary), 
+            inputs, 
+            contract.abiToBinary()
+        ]), new Uint8Array(20))
         ret.__abi = contract.abi
         ret.__setInputs(parameters)
         return ret
