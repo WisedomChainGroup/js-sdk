@@ -3,4 +3,4 @@ package-lock.json
 local
 .idea
 .DS_Store
-bundle.js
+bundle.js*

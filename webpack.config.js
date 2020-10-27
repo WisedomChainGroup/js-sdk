@@ -1,7 +1,6 @@
 const path = require('path')
 
 module.exports = {
-    mode: 'development',
     entry: path.join(__dirname, "contract-src/index.ts"),
     output: {
         path: path.join(__dirname, "contract-dist"),
@@ -13,7 +12,6 @@ module.exports = {
         // Add `.ts` and `.tsx` as a resolvable extension.
         extensions: [".ts", ".tsx", ".js"],
         fallback : {
-            "http": false,
             "child_process": false,
             "crypto": false,
             "buffer": false

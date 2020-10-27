@@ -3,7 +3,7 @@
  */
 import { AbiInput, ABI_DATA_ENUM, Binary, constants, Digital, Readable } from "./types";
 import { bin2str, concatArray, convert, dig2str, digest, extendPrivateKey, hex2bin, padPrefix, toSafeInt } from "./utils";
-import { bin2hex } from "../contract";
+import { bin2hex } from "./utils";
 import BN = require("../bn");
 import rlp = require('./rlp')
 import nacl = require('../nacl.min.js')

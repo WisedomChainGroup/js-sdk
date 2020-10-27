@@ -6,11 +6,11 @@ exports.Transaction = void 0;
  */
 var types_1 = require("./types");
 var utils_1 = require("./utils");
-var contract_1 = require("../contract");
+var utils_2 = require("./utils");
 var BN = require("../bn");
 var rlp = require("./rlp");
 var nacl = require("../nacl.min.js");
-var contract_2 = require("./contract");
+var contract_1 = require("./contract");
 var Transaction = /** @class */ (function () {
     /**
      * constructor of transaction
@@ -19,12 +19,12 @@ var Transaction = /** @class */ (function () {
         this.version = utils_1.dig2str(version || 0);
         this.type = utils_1.dig2str(type || 0);
         this.nonce = utils_1.dig2str(nonce || 0);
-        this.from = contract_1.bin2hex(from || '');
+        this.from = utils_2.bin2hex(from || '');
         this.gasPrice = utils_1.dig2str(gasPrice || 0);
         this.amount = utils_1.dig2str(amount || 0);
-        this.payload = contract_1.bin2hex(payload || '');
-        this.to = contract_1.bin2hex(to || '');
-        this.signature = contract_1.bin2hex(signature || '');
+        this.payload = utils_2.bin2hex(payload || '');
+        this.to = utils_2.bin2hex(to || '');
+        this.signature = utils_2.bin2hex(signature || '');
         this.__abi = __abi;
         this.__inputs = __inputs;
     }
@@ -82,12 +82,12 @@ var Transaction = /** @class */ (function () {
     Transaction.prototype.sign = function (_sk) {
         var sk = utils_1.hex2bin(_sk);
         sk = utils_1.extendPrivateKey(sk);
-        this.signature = contract_1.bin2hex(nacl.sign(this.getRaw(true), sk).slice(0, 64));
+        this.signature = utils_2.bin2hex(nacl.sign(this.getRaw(true), sk).slice(0, 64));
     };
     Transaction.prototype.__setInputs = function (__inputs) {
         var cnv = function (x) {
             if (x instanceof ArrayBuffer || x instanceof Uint8Array)
-                return contract_1.bin2hex(x);
+                return utils_2.bin2hex(x);
             if (x instanceof BN)
                 return utils_1.toSafeInt(x);
             return x;
@@ -103,7 +103,7 @@ var Transaction = /** @class */ (function () {
             }
         }
         if (Array.isArray(this.__inputs)) {
-            var c = new contract_2.Contract('', this.__abi);
+            var c = new contract_1.Contract('', this.__abi);
             var a = c.getABI(this.getMethod(), 'function');
             if (a.inputsObj()) {
                 this.__inputs = a.toObj(this.__inputs, true);

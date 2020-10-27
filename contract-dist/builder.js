@@ -3,15 +3,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TransactionBuilder = void 0;
 var types_1 = require("./types");
 var utils_1 = require("./utils");
-var contract_1 = require("../contract");
+var utils_2 = require("./utils");
 var BN = require("../bn");
-var contract_2 = require("./contract");
+var contract_1 = require("./contract");
 var tx_1 = require("./tx");
 var rlp = require("./rlp");
 var TransactionBuilder = /** @class */ (function () {
     function TransactionBuilder(version, sk, gasLimit, gasPrice, nonce) {
         this.version = utils_1.dig2str(version || '1');
-        this.sk = contract_1.bin2hex(sk || '');
+        this.sk = utils_2.bin2hex(sk || '');
         this.gasPrice = utils_1.dig2str(gasPrice || 200000);
         this.nonce = utils_1.dig2str(nonce || 0);
         this.gasLimit = utils_1.dig2str(gasLimit || 0);
@@ -25,10 +25,10 @@ var TransactionBuilder = /** @class */ (function () {
      * 构造部署合约的事务
      */
     TransactionBuilder.prototype.buildDeploy = function (contract, _parameters, amount) {
-        utils_1.assert(contract instanceof contract_2.Contract, 'create a instanceof Contract by new tool.Contract(addr, abi)');
+        utils_1.assert(contract instanceof contract_1.Contract, 'create a instanceof Contract by new tool.Contract(addr, abi)');
         utils_1.assert(utils_1.isBin(contract.binary), 'contract binary should be uint8 array');
         utils_1.assert(contract.abi, 'missing contract abi');
-        var parameters = contract_2.normalizeParams(_parameters);
+        var parameters = contract_1.normalizeParams(_parameters);
         var inputs;
         var binary = contract.binary;
         if (contract.abi.filter(function (x) { return x.name === 'init'; }).length > 0)
@@ -49,13 +49,13 @@ var TransactionBuilder = /** @class */ (function () {
      * @returns { Transaction }
      */
     TransactionBuilder.prototype.buildContractCall = function (contract, method, _parameters, amount) {
-        utils_1.assert(contract instanceof contract_2.Contract, 'create a instanceof Contract by new tool.Contract(addr, abi)');
+        utils_1.assert(contract instanceof contract_1.Contract, 'create a instanceof Contract by new tool.Contract(addr, abi)');
         utils_1.assert(contract.abi, 'missing contract abi');
         utils_1.assert(contract.address, 'missing contract address');
-        var parameters = contract_2.normalizeParams(_parameters);
+        var parameters = contract_1.normalizeParams(_parameters);
         var addr = utils_1.normalizeAddress(contract.address);
         var inputs = contract.abiEncode(method, parameters);
-        var ret = this.buildCommon(types_1.constants.WASM_CALL, amount, rlp.encode([this.gasLimit || 0, method, inputs]), contract_1.bin2hex(addr));
+        var ret = this.buildCommon(types_1.constants.WASM_CALL, amount, rlp.encode([this.gasLimit || 0, method, inputs]), utils_2.bin2hex(addr));
         ret.__abi = contract.abi;
         ret.__setInputs(parameters);
         return ret;

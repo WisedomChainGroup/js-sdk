@@ -4,8 +4,8 @@ exports.RPC = void 0;
 var types_1 = require("./types");
 var utils_1 = require("./utils");
 var rlp_1 = require("./rlp");
-var contract_1 = require("../contract");
-var contract_2 = require("./contract");
+var utils_2 = require("./utils");
+var contract_1 = require("./contract");
 var rlp = require("./rlp");
 var BN = require("../bn");
 var RPC = /** @class */ (function () {
@@ -84,7 +84,7 @@ var RPC = /** @class */ (function () {
         };
         switch (code) {
             case types_1.WS_CODES.TRANSACTION_EMIT: {
-                var h = contract_1.bin2hex(body[0]);
+                var h = utils_2.bin2hex(body[0]);
                 var s = rlp_1.byteArrayToInt(body[1]);
                 var ret = r;
                 ret.hash = h;
@@ -95,7 +95,7 @@ var RPC = /** @class */ (function () {
                 if (s === types_1.TX_STATUS.INCLUDED) {
                     var arr = body[2];
                     ret.blockHeight = utils_1.toSafeInt(arr[0]);
-                    ret.blockHash = contract_1.bin2hex(arr[1]);
+                    ret.blockHash = utils_2.bin2hex(arr[1]);
                     ret.gasUsed = utils_1.toSafeInt(arr[2]);
                     ret.result = arr[3];
                     ret.events = arr[4];
@@ -104,7 +104,7 @@ var RPC = /** @class */ (function () {
             }
             case types_1.WS_CODES.EVENT_EMIT: {
                 var ret = r;
-                ret.addr = contract_1.bin2hex(body[0]);
+                ret.addr = utils_2.bin2hex(body[0]);
                 ret.name = utils_1.bin2str(body[1]);
                 return ret;
             }
@@ -146,7 +146,7 @@ var RPC = /** @class */ (function () {
      */
     RPC.prototype.__listen = function (contract, event, func) {
         var addr = utils_1.normalizeAddress(contract.address);
-        var addrHex = contract_1.bin2hex(addr);
+        var addrHex = utils_2.bin2hex(addr);
         this.wsRpc(types_1.WS_CODES.EVENT_SUBSCRIBE, addr);
         var id = ++this.cid;
         var key = addrHex + ":" + event;
@@ -212,7 +212,7 @@ var RPC = /** @class */ (function () {
      */
     RPC.prototype.__observe = function (_hash, cb) {
         var _this = this;
-        var hash = contract_1.bin2hex(_hash);
+        var hash = utils_2.bin2hex(_hash);
         var id = ++this.cid;
         hash = hash.toLowerCase();
         if (!this.txObservers.has(hash))
@@ -235,9 +235,9 @@ var RPC = /** @class */ (function () {
      * 查看合约方法
      */
     RPC.prototype.viewContract = function (contract, method, parameters) {
-        if (!(contract instanceof contract_2.Contract))
+        if (!(contract instanceof contract_1.Contract))
             throw new Error('create a instanceof Contract by new tool.Contract(addr, abi)');
-        var normalized = contract_2.normalizeParams(parameters);
+        var normalized = contract_1.normalizeParams(parameters);
         var addr = contract.address;
         var params = contract.abiEncode(method, normalized);
         return this.wsRpc(types_1.WS_CODES.CONTRACT_QUERY, [
@@ -292,7 +292,7 @@ var RPC = /** @class */ (function () {
                     if (resp.result && resp.result.length
                         && tx.__abi
                         && tx.isDeployOrCall()) {
-                        var decoded = (new contract_2.Contract('', tx.__abi)).abiDecode(tx.getMethod(), resp.result);
+                        var decoded = (new contract_1.Contract('', tx.__abi)).abiDecode(tx.getMethod(), resp.result);
                         ret.result = decoded;
                     }
                     if (resp.events &&
@@ -302,12 +302,12 @@ var RPC = /** @class */ (function () {
                         for (var _i = 0, _a = resp.events; _i < _a.length; _i++) {
                             var e = _a[_i];
                             var name_1 = utils_1.bin2str(e[0]);
-                            var decoded = (new contract_2.Contract('', tx.__abi)).abiDecode(name_1, e[1], 'event');
+                            var decoded = (new contract_1.Contract('', tx.__abi)).abiDecode(name_1, e[1], 'event');
                             events.push({ name: name_1, data: decoded });
                         }
                         ret.events = events;
                     }
-                    ret.transactionHash = contract_1.bin2hex(tx.getHash());
+                    ret.transactionHash = utils_2.bin2hex(tx.getHash());
                     ret.fee = utils_1.toSafeInt((new BN(tx.gasPrice).mul(new BN(ret.gasUsed))));
                     if (tx.isDeployOrCall()) {
                         ret.method = tx.getMethod();

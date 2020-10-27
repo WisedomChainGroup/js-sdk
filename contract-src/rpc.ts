@@ -1,7 +1,7 @@
 import { AbiInput, Binary, Readable, RLPElement, TransactionResult, TX_STATUS, WS_CODES, Event } from "./types"
 import { assert, bin2str, hex2bin, normalizeAddress, toSafeInt, uuidv4 } from "./utils"
 import { byteArrayToInt } from "./rlp"
-import { bin2hex } from "../contract"
+import { bin2hex } from "./utils"
 import { Contract, normalizeParams } from "./contract"
 import { Transaction } from "./tx"
 import rlp = require('./rlp')

@@ -1,6 +1,6 @@
 import { AbiInput, Binary, constants, Digital, ONE, ABI_DATA_ENUM } from "./types"
 import { dig2str, assert, privateKey2PublicKey, normalizeAddress, isBin, hex2bin } from "./utils"
-import { bin2hex } from "../contract"
+import { bin2hex } from "./utils"
 import BN = require("../bn")
 import Dict = NodeJS.Dict
 import { Contract, normalizeParams } from "./contract"

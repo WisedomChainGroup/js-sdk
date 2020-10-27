@@ -23,7 +23,7 @@ import {
     rmd160
 } from "./utils"
 import BN = require("../bn")
-import { bin2hex } from "../contract"
+import { bin2hex } from "./utils"
 import rlp = require('./rlp')
 
 /**

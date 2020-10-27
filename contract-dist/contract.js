@@ -5,7 +5,7 @@ var types_1 = require("./types");
 var child_process = require("child_process");
 var utils_1 = require("./utils");
 var BN = require("../bn");
-var contract_1 = require("../contract");
+var utils_2 = require("./utils");
 var rlp = require("./rlp");
 /**
  * 计算合约地址
@@ -183,7 +183,7 @@ function abiDecode(outputs, buf) {
         var val = void 0;
         switch (t) {
             case 'bytes': {
-                val = contract_1.bin2hex(arr[i]);
+                val = utils_2.bin2hex(arr[i]);
                 break;
             }
             case 'address': {
@@ -238,7 +238,7 @@ function abiDecode(outputs, buf) {
 var Contract = /** @class */ (function () {
     function Contract(address, abi, binary) {
         if (address)
-            this.address = contract_1.bin2hex(address);
+            this.address = utils_2.bin2hex(address);
         this.abi = (abi || []).map(ABI.from);
         if (binary)
             this.binary = utils_1.hex2bin(binary);
