@@ -25,8 +25,8 @@
 
     /**
      * 比较两个字节数组
-     * @param {Uint8Array} a 
-     * @param {Uint8Array} b 
+     * @param {Uint8Array} a
+     * @param {Uint8Array} b
      */
     function compareBytes(a, b) {
         if (a.length > b.length)
@@ -61,7 +61,7 @@
 
     /**
      * rmd160 哈希值计算
-     * @param {Uint8Array} o 
+     * @param {Uint8Array} o
      * @returns {Uint8Array}
      */
     function rmd160(o) {
@@ -72,7 +72,7 @@
 
     /**
      * base58 编码工具
-     * @param {string} ALPHABET 
+     * @param {string} ALPHABET
      */
     function base(ALPHABET) {
         var ALPHABET_MAP = {}
@@ -88,8 +88,8 @@
         }
 
         /**
-         * 
-         * @param {Uint8Array} source 
+         *
+         * @param {Uint8Array} source
          */
         function encode(source) {
             if (source.length === 0) return ''
@@ -120,8 +120,8 @@
 
 
         /**
-         * 
-         * @param {string} string 
+         *
+         * @param {string} string
          * @returns {Uint8Array}
          */
         function decodeUnsafe(string) {
@@ -171,7 +171,7 @@
 
     /**
      * 私钥转公钥
-     * @param {Uint8Array | string | ArrayBuffer} privateKey 
+     * @param {Uint8Array | string | ArrayBuffer} privateKey
      * @returns {Uint8Array}
      */
     function privateKey2PublicKey(privateKey) {
@@ -186,7 +186,7 @@
 
     /**
      * 公钥转公钥哈希
-     * @param {Uint8Array | string} publicKey 
+     * @param {Uint8Array | string} publicKey
      * @returns {Uint8Array}
      */
     function publicKey2Hash(publicKey) {
@@ -212,7 +212,7 @@
     /**
      * 公钥哈希转地址
      * @param { Uint8Array } hash
-     *  
+     *
      */
     function publicKeyHash2Address(hash) {
         let r2 = concatBytes(new Uint8Array([0]), hash)
@@ -224,7 +224,7 @@
 
     /**
      * 32 字节私钥转成 64字节私钥
-     * @param {string} sk 
+     * @param {string} sk
      */
     function extendPrivateKey(sk) {
         sk = decodeHex(sk)
@@ -235,7 +235,7 @@
 
     /**
      * 断言正确的地址
-     * @param {string} address 
+     * @param {string} address
      */
     function assertAddress(address) {
         if (!typeof address === 'string')
@@ -263,7 +263,7 @@
     /**
      * 公钥、地址、或者公钥哈希 转成公钥哈希
      * @param {string | Uint8Array | ArrayBuffer} 地址、公钥或者公钥哈希
-     * @returns  {Uint8Array} 
+     * @returns  {Uint8Array}
      */
     function normalizeAddress(addr) {
         if (typeof addr === 'string' && isHex(addr))
@@ -1195,7 +1195,7 @@
             }
             return byteArrayToInt(
                 copyOfRange(this.buf, 1 + this.offset, this.offset + 1 + prefix - OFFSET_LONG_LIST)
-            )
+                )
                 + 1 + prefix - OFFSET_LONG_LIST;
         }
 
@@ -1361,7 +1361,7 @@
             switch (type) {
                 case ABI_DATA_TYPE.U256:
                 case ABI_DATA_TYPE.U64: {
-                    if(o.isNeg())
+                    if (o.isNeg())
                         throw new Error(`cannot convert negative ${o.toString()} to uint`)
                     return o;
                 }
@@ -1437,7 +1437,7 @@
          *
          * @param {string} name 调用方法名称
          * @param { Array | Object } li 参数列表
-         * @returns { Array } rlp 编码后的参数 
+         * @returns { Array } rlp 编码后的参数
          */
         abiEncode(name, li) {
             const func = this.getABI(name, ABI_TYPE.FUNCTION)
@@ -1589,8 +1589,8 @@
                 reader.readAsArrayBuffer(e.data)
             }
             const p = new Promise((rs, rj) => {
-                this.__ws.onopen = rs
-            }
+                    this.__ws.onopen = rs
+                }
             )
             return p
         }
@@ -1794,7 +1794,7 @@
                 if (timeout)
                     setTimeout(() => {
                         if (success) return
-                        reject({ reason: 'timeout' })
+                        reject({reason: 'timeout'})
                     }, timeout)
 
                 let ret = null
@@ -1803,7 +1803,7 @@
 
                 this.__observe(tx.getHash(), (h, s, d) => {
                     if (s === TX_STATUS.DROPPED) {
-                        const e = { hash: h, reason: d }
+                        const e = {hash: h, reason: d}
                         reject(e)
                         return
                     }
@@ -1839,7 +1839,7 @@
                             for (let e of d.events) {
                                 const name = bin2str(e[0])
                                 const decoded = (new Contract('', tx.__abi)).abiDecode(name, e[1], ABI_TYPE.EVENT)
-                                events.push({ name: name, data: decoded })
+                                events.push({name: name, data: decoded})
                             }
                             ret.events = events
                         }
@@ -2079,38 +2079,78 @@
         WASM_CALL: 17,
     }
 
+    class MemoryOutputStream {
+        buf
 
-    /**
-     * 编译合约
-     * @param ascPath {string} 编译器路径，一般在 node_modules/.bin/asc 下面
-     * @param src {string} 源文件路径
-     * @returns {Promise<Uint8Array>}
-     */
-    function compileContract(ascPath, src, opts) {
-        let cmd = ascPath + ' ' + src + ' -b ' // 执行的命令
-        if (opts && opts.debug)
-            cmd += ' --debug '
-        if (opts && opts.optimize)
-            cmd += ' --optimize '
-        if (isBrowser)
-            throw new Error('compile contract is available in node environment')
-        return new Promise((resolve, reject) => {
-            const child_process = require('child_process');
-            child_process.exec(
-                cmd,
-                { encoding: 'buffer' },
-                (err, stdout, stderr) => {
-                    if (err) {
-                        // err.code 是进程退出时的 exit code，非 0 都被认为错误
-                        // err.signal 是结束进程时发送给它的信号值
-                        reject(stderr.toString('ascii'))
-                    }
-                    resolve(stdout)
-                }
-            );
-        })
+        constructor() {
+            this.buf = new Uint8Array(0)
+        }
+
+        write(chunk) {
+            if (typeof chunk === 'string')
+                this.buf = concatBytes(this.buf, str2bin(chunk))
+            else
+                this.buf = concatBytes(this.buf, chunk)
+        }
     }
 
+
+    async function compileContract(ascPath, src, opts) {
+        if (typeof ascPath === 'string' && typeof src === 'string') {
+            const child_process = require('child_process')
+            let cmd = ascPath + ' ' + src + ' -b ' // 执行的命令
+            if (opts && opts.debug)
+                cmd += ' --debug '
+            if (opts && opts.optimize)
+                cmd += ' --optimize '
+            return new Promise((rs, rj) => {
+                child_process.exec(
+                    cmd,
+                    {encoding: 'buffer'},
+                    (err, stdout, stderr) => {
+                        if (err) {
+                            // err.code 是进程退出时的 exit code，非 0 都被认为错误
+                            // err.signal 是结束进程时发送给它的信号值
+                            rj(stderr.toString('ascii'))
+                            return
+                        }
+                        rs(stdout)
+                    }
+                )
+            })
+        }
+        const asc = require("assemblyscript/cli/asc")
+        if (typeof src !== 'string') {
+            src = ascPath
+        }
+        if (typeof src !== 'string')
+            throw new Error('invalid source file ' + src)
+        const arr = [
+            src,
+            "-b"
+        ]
+        const stdout = new MemoryOutputStream()
+        const stderr = new MemoryOutputStream()
+
+        if (opts && opts.debug)
+            arr.push('--debug')
+        if (opts && opts.optimize)
+            arr.push('--optimize')
+
+        await asc.ready
+        return new Promise((rs, rj) => {
+            asc.main(arr, {
+                stdout: stdout,
+                stderr: stderr
+            }, function (err) {
+                if (err) {
+                    rj(bin2str(stderr.buf))
+                    return
+                }
+                rs(stdout.buf)
+            })
+        })
+    }
 
     function rpcPost(host, port, path, data) {
         if (!path.startsWith('/'))
@@ -2210,6 +2250,7 @@
     else {
         window.contractTool = tool
     }
+
     /**
      *
      * @param { ArrayBuffer | Uint8Array | string } str
@@ -2236,7 +2277,7 @@
             const ret = TYPES[str]
             if (!ret)
                 throw new Error(`invalid type: ${str}`)
-            return [{ "type": ret }]
+            return [{"type": ret}]
         }
 
         function getInputs(str, event) {
@@ -2270,7 +2311,7 @@
         for (let m of (str.match(funRe) || [])) {
             funRe.lastIndex = 0
             const r = funRe.exec(m)
-            if (r[1] === '__idof'){
+            if (r[1] === '__idof') {
                 contains__idof = true
                 continue
             }
@@ -2294,7 +2335,7 @@
             })
         }
 
-        if(!contains__idof)
+        if (!contains__idof)
             throw new Error('any contract must contains an __idof function')
         return ret
     }

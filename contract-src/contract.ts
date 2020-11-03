@@ -1,30 +1,25 @@
-import {
-    ABI_DATA_ENUM,
-    ABI_DATA_TYPE,
-    ABI_DATA_TYPE_TABLE,
-    ABI_TYPE,
-    AbiInput,
-    Binary, MAX_U256,
-    MAX_U64, ONE,
-    Readable
-} from "./types"
-import Dict = NodeJS.Dict
-import child_process = require('child_process')
+import {ABI_DATA_TYPE, ABI_TYPE, AbiInput, Binary, MAX_U256, MAX_U64, ONE, Readable} from "./types"
+import {OutputStream} from 'assemblyscript/cli/asc'
+
 import {
     assert,
+    bin2hex,
     bin2str,
     bytesToF64,
+    concatBytes,
     convert,
     hex2bin,
     inverse,
+    normalizeAddress,
     padPrefix,
     publicKeyHash2Address,
-    toSafeInt,
-    rmd160, normalizeAddress
+    rmd160,
+    str2bin,
+    toSafeInt
 } from "./utils"
-import BN = require("../bn")
-import { bin2hex } from "./utils"
-import rlp = require('./rlp')
+import BN = require("../bn");
+import rlp = require('./rlp');
+import Dict = NodeJS.Dict;
 
 /**
  * 计算合约地址
@@ -35,25 +30,60 @@ export function getContractAddress(hash: Binary): string {
     return publicKeyHash2Address(buf)
 }
 
-export function compileContract(ascPath: string, src: string, opts?: { debug?: boolean, optimize?: boolean }): Promise<Uint8Array> {
-    let cmd = ascPath + ' ' + src + ' -b ' // 执行的命令
-    if (opts && opts.debug)
-        cmd += ' --debug '
-    if (opts && opts.optimize)
-        cmd += ' --optimize '
-    return new Promise((resolve, reject) => {
-        child_process.exec(
-            cmd,
-            { encoding: 'buffer' },
-            (err, stdout, stderr) => {
-                if (err) {
-                    // err.code 是进程退出时的 exit code，非 0 都被认为错误
-                    // err.signal 是结束进程时发送给它的信号值
-                    reject(stderr.toString('ascii'))
+export async function compileContract(ascPath?: string, src?: string, opts?: { debug?: boolean, optimize?: boolean }): Promise<Uint8Array> {
+    if (typeof ascPath === 'string' && typeof src === 'string') {
+        const child_process = require('child_process')
+        let cmd = ascPath + ' ' + src + ' -b ' // 执行的命令
+        if (opts && opts.debug)
+            cmd += ' --debug '
+        if (opts && opts.optimize)
+            cmd += ' --optimize '
+        return new Promise((rs, rj) => {
+            child_process.exec(
+                cmd,
+                {encoding: 'buffer'},
+                (err, stdout, stderr) => {
+                    if (err) {
+                        // err.code 是进程退出时的 exit code，非 0 都被认为错误
+                        // err.signal 是结束进程时发送给它的信号值
+                        rj(stderr.toString('ascii'))
+                        return
+                    }
+                    rs(stdout)
                 }
-                resolve(stdout)
+            )
+        })
+    }
+    const asc = require("assemblyscript/cli/asc")
+    if (typeof src !== 'string') {
+        src = ascPath
+    }
+    if(typeof src !== 'string')
+        throw new Error('invalid source file ' + src)
+    const arr = [
+        src,
+        "-b"
+    ]
+    const stdout = new MemoryOutputStream()
+    const stderr = new MemoryOutputStream()
+
+    if (opts && opts.debug)
+        arr.push('--debug')
+    if (opts && opts.optimize)
+        arr.push('--optimize')
+
+    await asc.ready
+    return new Promise((rs, rj) => {
+        asc.main(arr, {
+            stdout: stdout,
+            stderr: stderr
+        }, function (err) {
+            if (err) {
+                rj(bin2str(stderr.buf))
+                return
             }
-        )
+            rs(stdout.buf)
+        })
     })
 }
 
@@ -62,6 +92,7 @@ export function compileContract(ascPath: string, src: string, opts?: { debug?: b
  */
 export function compileABI(_str: Binary): ABI[] {
     let str = bin2str(_str)
+
     const TYPES = {
         u64: 'u64',
         i64: 'i64',
@@ -146,12 +177,13 @@ export function compileABI(_str: Binary): ABI[] {
 
 
 export class TypeDef {
-    type: ABI_DATA_TYPE
+    type: string
     name?: string
+
     constructor(type: string, name?: string) {
         type = type && type.toLocaleLowerCase()
-        assert(ABI_DATA_TYPE_TABLE.indexOf(<ABI_DATA_TYPE>type) >= 0, `invalid abi type def name = ${name} type = ${type}`)
-        this.type = <ABI_DATA_TYPE>type
+        assert(ABI_DATA_TYPE[type] !== undefined, `invalid abi type def name = ${name} type = ${type}`)
+        this.type = type
         this.name = name
     }
 
@@ -299,11 +331,26 @@ function abiDecode(outputs: TypeDef[], buf?: Uint8Array[]): Readable[] | Dict<Re
     return ret
 }
 
+class MemoryOutputStream implements OutputStream {
+    buf: Uint8Array
+
+    constructor() {
+        this.buf = new Uint8Array()
+    }
+
+    write(chunk: string | Uint8Array): void {
+        if (typeof chunk === 'string')
+            this.buf = concatBytes(this.buf, str2bin(chunk))
+        else
+            this.buf = concatBytes(this.buf, chunk)
+    }
+}
 
 export class Contract {
     address: string
     abi: ABI[]
     binary: Uint8Array
+
     constructor(address?: Binary, abi?: ABI[], binary?: ArrayBuffer | Uint8Array) {
         if (address)
             this.address = bin2hex(normalizeAddress(address))
@@ -312,10 +359,10 @@ export class Contract {
             this.binary = hex2bin(binary)
     }
 
-    abiEncode(name: string, li?: AbiInput | AbiInput[] | Dict<AbiInput>): [ABI_DATA_ENUM[], Array<string | Uint8Array | BN>, ABI_DATA_ENUM[]] {
+    abiEncode(name: string, li?: AbiInput | AbiInput[] | Dict<AbiInput>): [ABI_DATA_TYPE[], Array<string | Uint8Array | BN>, ABI_DATA_TYPE[]] {
         const func = this.getABI(name, 'function')
         let retType = func.outputs && func.outputs[0] && func.outputs[0].type
-        const retTypes = retType ? [ABI_DATA_TYPE_TABLE.indexOf(retType)] : []
+        const retTypes = retType ? [ABI_DATA_TYPE[retType]] : []
 
         if (typeof li === 'string' || typeof li === 'number' || li instanceof BN || li instanceof ArrayBuffer || li instanceof Uint8Array || typeof li === 'boolean')
             return this.abiEncode(name, [li])
@@ -330,21 +377,22 @@ export class Contract {
             if (li.length != func.inputs.length)
                 throw new Error(`abi encode failed for ${func.name}, expect ${func.inputs.length} parameters while ${li.length} found`)
             for (let i = 0; i < li.length; i++) {
-                arr[i] = convert(li[i], ABI_DATA_TYPE_TABLE.indexOf(func.inputs[i].type))
-                types[i] = ABI_DATA_TYPE_TABLE.indexOf(func.inputs[i].type)
+                const t = ABI_DATA_TYPE[func.inputs[i].type]
+                arr[i] = convert(li[i], t)
+                types[i] = t
             }
             return [types, arr, retTypes]
         }
 
         const arr: Array<string | Uint8Array | BN> = []
-        const types: ABI_DATA_ENUM[] = []
+        const types: ABI_DATA_TYPE[] = []
         for (let i = 0; i < func.inputs.length; i++) {
             const input = func.inputs[i]
-            types[i] = ABI_DATA_TYPE_TABLE.indexOf(func.inputs[i].type)
+            types[i] = ABI_DATA_TYPE[func.inputs[i].type]
             if (!(input.name in li)) {
                 throw new Error(`key ${input.name} not found in parameters`)
             }
-            arr[i] = convert(li[input.name], ABI_DATA_TYPE_TABLE.indexOf(input.type))
+            arr[i] = convert(li[input.name], ABI_DATA_TYPE[input.type])
         }
         return [types, arr, retTypes]
     }
@@ -370,7 +418,7 @@ export class Contract {
     abiToBinary(): any[] {
         const ret = []
         for (let a of this.abi) {
-            ret.push([a.name, a.type === 'function' ? 0 : 1, a.inputs.map(x => ABI_DATA_ENUM[x.type]), a.outputs.map(x => ABI_DATA_ENUM[x.type])])
+            ret.push([a.name, a.type === 'function' ? 0 : 1, a.inputs.map(x => ABI_DATA_TYPE[x.type]), a.outputs.map(x => ABI_DATA_TYPE[x.type])])
         }
         return ret
     }

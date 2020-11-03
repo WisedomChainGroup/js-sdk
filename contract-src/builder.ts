@@ -1,4 +1,4 @@
-import { AbiInput, Binary, constants, Digital, ONE, ABI_DATA_ENUM } from "./types"
+import { AbiInput, Binary, constants, Digital, ONE, ABI_DATA_TYPE } from "./types"
 import { dig2str, assert, privateKey2PublicKey, normalizeAddress, isBin, hex2bin } from "./utils"
 import { bin2hex, convert} from "./utils"
 import BN = require("../bn")
@@ -37,7 +37,7 @@ export class TransactionBuilder {
         assert(contract.abi, 'missing contract abi')
 
         let parameters = normalizeParams(_parameters)
-        let inputs: [ABI_DATA_ENUM[], Array<string | Uint8Array | BN>, ABI_DATA_ENUM[]]
+        let inputs: [ABI_DATA_TYPE[], Array<string | Uint8Array | BN>, ABI_DATA_TYPE[]]
         const binary = contract.binary
 
         if (contract.abi.filter(x => x.name === 'init').length > 0)
@@ -46,7 +46,7 @@ export class TransactionBuilder {
             inputs = [[], [], []]
 
         const ret = this.buildCommon(constants.WASM_DEPLOY, amount, rlp.encode([
-            convert(this.gasLimit || 0, ABI_DATA_ENUM.u256), 
+            convert(this.gasLimit || 0, ABI_DATA_TYPE.u256),
             hex2bin(binary), 
             inputs, 
             contract.abiToBinary()
@@ -58,11 +58,6 @@ export class TransactionBuilder {
 
     /**
      * 构造合约调用事务
-     * @param { Contract} contract 合约
-     * @param {string} method 调用合约的方法
-     * @param { Array | Object } [parameters] 方法参数
-     * @param amount [number] 金额
-     * @returns { Transaction }
      */
     buildContractCall(contract: Contract, method: string, _parameters?: AbiInput | AbiInput[] | Dict<AbiInput>, amount?: Digital): Transaction {
         assert(contract instanceof Contract, 'create a instanceof Contract by new tool.Contract(addr, abi)')
@@ -74,7 +69,7 @@ export class TransactionBuilder {
         const addr = normalizeAddress(contract.address)
         let inputs = contract.abiEncode(method, parameters)
 
-        const ret = this.buildCommon(constants.WASM_CALL, amount, rlp.encode([convert(this.gasLimit || 0, ABI_DATA_ENUM.u256), method, inputs]), bin2hex(addr))
+        const ret = this.buildCommon(constants.WASM_CALL, amount, rlp.encode([convert(this.gasLimit || 0, ABI_DATA_TYPE.u256), method, inputs]), bin2hex(addr))
         ret.__abi = contract.abi
         ret.__setInputs(parameters)
         return ret

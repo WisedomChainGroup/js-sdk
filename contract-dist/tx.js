@@ -65,15 +65,15 @@ var Transaction = /** @class */ (function () {
     };
     Transaction.prototype.__toArr = function () {
         return [
-            utils_1.convert(this.version || 0, types_1.ABI_DATA_ENUM.u64),
-            utils_1.convert(this.type || 0, types_1.ABI_DATA_ENUM.u64),
-            utils_1.convert(this.nonce || '0', types_1.ABI_DATA_ENUM.u64),
-            utils_1.convert(this.from || '', types_1.ABI_DATA_ENUM.bytes),
-            utils_1.convert(this.gasPrice || '0', types_1.ABI_DATA_ENUM.u256),
-            utils_1.convert(this.amount || '0', types_1.ABI_DATA_ENUM.u256),
-            utils_1.convert(this.payload || '', types_1.ABI_DATA_ENUM.bytes),
+            utils_1.convert(this.version || 0, types_1.ABI_DATA_TYPE.u64),
+            utils_1.convert(this.type || 0, types_1.ABI_DATA_TYPE.u64),
+            utils_1.convert(this.nonce || '0', types_1.ABI_DATA_TYPE.u64),
+            utils_1.convert(this.from || '', types_1.ABI_DATA_TYPE.bytes),
+            utils_1.convert(this.gasPrice || '0', types_1.ABI_DATA_TYPE.u256),
+            utils_1.convert(this.amount || '0', types_1.ABI_DATA_TYPE.u256),
+            utils_1.convert(this.payload || '', types_1.ABI_DATA_TYPE.bytes),
             utils_1.hex2bin(this.to),
-            utils_1.convert(this.signature || '', types_1.ABI_DATA_ENUM.bytes)
+            utils_1.convert(this.signature || '', types_1.ABI_DATA_TYPE.bytes)
         ];
     };
     /**

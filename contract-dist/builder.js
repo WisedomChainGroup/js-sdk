@@ -36,7 +36,7 @@ var TransactionBuilder = /** @class */ (function () {
         else
             inputs = [[], [], []];
         var ret = this.buildCommon(types_1.constants.WASM_DEPLOY, amount, rlp.encode([
-            utils_2.convert(this.gasLimit || 0, types_1.ABI_DATA_ENUM.u256),
+            utils_2.convert(this.gasLimit || 0, types_1.ABI_DATA_TYPE.u256),
             utils_1.hex2bin(binary),
             inputs,
             contract.abiToBinary()
@@ -47,11 +47,6 @@ var TransactionBuilder = /** @class */ (function () {
     };
     /**
      * 构造合约调用事务
-     * @param { Contract} contract 合约
-     * @param {string} method 调用合约的方法
-     * @param { Array | Object } [parameters] 方法参数
-     * @param amount [number] 金额
-     * @returns { Transaction }
      */
     TransactionBuilder.prototype.buildContractCall = function (contract, method, _parameters, amount) {
         utils_1.assert(contract instanceof contract_1.Contract, 'create a instanceof Contract by new tool.Contract(addr, abi)');
@@ -60,7 +55,7 @@ var TransactionBuilder = /** @class */ (function () {
         var parameters = contract_1.normalizeParams(_parameters);
         var addr = utils_1.normalizeAddress(contract.address);
         var inputs = contract.abiEncode(method, parameters);
-        var ret = this.buildCommon(types_1.constants.WASM_CALL, amount, rlp.encode([utils_2.convert(this.gasLimit || 0, types_1.ABI_DATA_ENUM.u256), method, inputs]), utils_2.bin2hex(addr));
+        var ret = this.buildCommon(types_1.constants.WASM_CALL, amount, rlp.encode([utils_2.convert(this.gasLimit || 0, types_1.ABI_DATA_TYPE.u256), method, inputs]), utils_2.bin2hex(addr));
         ret.__abi = contract.abi;
         ret.__setInputs(parameters);
         return ret;

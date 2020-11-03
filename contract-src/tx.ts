@@ -1,15 +1,15 @@
 /**
  * 事务
  */
-import { AbiInput, ABI_DATA_ENUM, Binary, constants, Digital, Readable } from "./types";
-import { bin2str, concatArray, convert, dig2str, digest, extendPrivateKey, hex2bin, padPrefix, toSafeInt } from "./utils";
-import { bin2hex } from "./utils";
-import BN = require("../bn");
+import {AbiInput, ABI_DATA_TYPE, Binary, constants, Digital, Readable} from "./types"
+import {bin2str, concatArray, convert, dig2str, digest, extendPrivateKey, hex2bin, padPrefix, toSafeInt} from "./utils"
+import {bin2hex} from "./utils"
+import BN = require("../bn")
 import rlp = require('./rlp')
 import nacl = require('../nacl.min.js')
-import { Encoder } from "./rlp";
-import { ABI, Contract } from "./contract";
-import Dict = NodeJS.Dict;
+import {Encoder} from "./rlp"
+import {ABI, Contract} from "./contract"
+import Dict = NodeJS.Dict
 
 export class Transaction implements Encoder {
     version: string
@@ -84,15 +84,15 @@ export class Transaction implements Encoder {
 
     __toArr(): Array<string | Uint8Array | BN> {
         return [
-            convert(this.version || 0, ABI_DATA_ENUM.u64),
-            convert(this.type || 0, ABI_DATA_ENUM.u64),
-            convert(this.nonce || '0', ABI_DATA_ENUM.u64),
-            convert(this.from || '', ABI_DATA_ENUM.bytes),
-            convert(this.gasPrice || '0', ABI_DATA_ENUM.u256),
-            convert(this.amount || '0', ABI_DATA_ENUM.u256),
-            convert(this.payload || '', ABI_DATA_ENUM.bytes),
+            convert(this.version || 0, ABI_DATA_TYPE.u64),
+            convert(this.type || 0, ABI_DATA_TYPE.u64),
+            convert(this.nonce || '0', ABI_DATA_TYPE.u64),
+            convert(this.from || '', ABI_DATA_TYPE.bytes),
+            convert(this.gasPrice || '0', ABI_DATA_TYPE.u256),
+            convert(this.amount || '0', ABI_DATA_TYPE.u256),
+            convert(this.payload || '', ABI_DATA_TYPE.bytes),
             hex2bin(this.to),
-            convert(this.signature || '', ABI_DATA_ENUM.bytes)
+            convert(this.signature || '', ABI_DATA_TYPE.bytes)
         ]
     }
 

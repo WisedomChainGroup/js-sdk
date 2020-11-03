@@ -6,8 +6,6 @@ export declare type Readable = string | number | boolean;
 export declare type AbiInput = string | number | boolean | ArrayBuffer | Uint8Array | BN;
 export declare type RLPElement = Uint8Array | Uint8Array[];
 export declare type Binary = string | Uint8Array | ArrayBuffer;
-export declare type ABI_DATA_TYPE = 'bool' | 'i64' | 'u64' | 'f64' | 'string' | 'bytes' | 'address' | 'u256';
-export declare const ABI_DATA_TYPE_TABLE: ABI_DATA_TYPE[];
 export declare type ABI_TYPE = 'function' | 'event';
 /**
  * 合约事件
@@ -48,7 +46,7 @@ export declare enum TX_STATUS {
     CONFIRMED = 2,
     DROPPED = 3
 }
-export declare enum ABI_DATA_ENUM {
+export declare enum ABI_DATA_TYPE {
     bool = 0,
     i64 = 1,
     u64 = 2,

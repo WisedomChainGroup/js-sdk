@@ -7,8 +7,6 @@ export type RLPElement = Uint8Array | Uint8Array[]
 
 export type Binary = string | Uint8Array | ArrayBuffer
 
-export type ABI_DATA_TYPE = 'bool' | 'i64' | 'u64' | 'f64' | 'string' | 'bytes' | 'address' | 'u256'
-export const ABI_DATA_TYPE_TABLE: ABI_DATA_TYPE[] = ['bool', 'i64', 'u64', 'f64', 'string', 'bytes', 'address', 'u256']
 export type ABI_TYPE = 'function' | 'event'
 
 /**
@@ -56,7 +54,7 @@ export enum TX_STATUS {
     DROPPED
 }
 
-export enum ABI_DATA_ENUM {
+export enum ABI_DATA_TYPE {
     bool,
     i64,
     u64,

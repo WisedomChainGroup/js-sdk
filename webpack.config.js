@@ -17,7 +17,7 @@ module.exports = {
         fallback : {
             "child_process": false,
             "crypto": false,
-            "buffer": false
+            "buffer": false,
         }
     },
     module: {
@@ -33,6 +33,7 @@ module.exports = {
     },
     externals: {
         // require('ws') as WebSocket
-        ws: 'WebSocket'
+        ws: 'WebSocket',
+        'assemblyscript/cli/asc': 'asc'
     }
 }

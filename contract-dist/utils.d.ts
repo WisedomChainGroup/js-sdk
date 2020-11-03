@@ -1,4 +1,4 @@
-import { ABI_DATA_ENUM, AbiInput, Binary, Digital } from "./types";
+import { ABI_DATA_TYPE, AbiInput, Binary, Digital } from "./types";
 import BN = require('../bn');
 export declare function isBin(r?: any): boolean;
 /**
@@ -71,7 +71,7 @@ export declare function padPrefix(arr: Uint8Array, prefix: number, size: number)
  * @param {Uint8Array} buf
  */
 export declare function bytesToF64(buf: Uint8Array | ArrayBuffer): number;
-export declare function convert(o: AbiInput, type: ABI_DATA_ENUM): string | Uint8Array | BN;
+export declare function convert(o: AbiInput, type: ABI_DATA_TYPE): string | Uint8Array | BN;
 /**
  * 对字节数组取反
  */

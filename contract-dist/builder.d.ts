@@ -17,11 +17,6 @@ export declare class TransactionBuilder {
     buildDeploy(contract: Contract, _parameters?: AbiInput | AbiInput[] | Dict<AbiInput>, amount?: Digital): Transaction;
     /**
      * 构造合约调用事务
-     * @param { Contract} contract 合约
-     * @param {string} method 调用合约的方法
-     * @param { Array | Object } [parameters] 方法参数
-     * @param amount [number] 金额
-     * @returns { Transaction }
      */
     buildContractCall(contract: Contract, method: string, _parameters?: AbiInput | AbiInput[] | Dict<AbiInput>, amount?: Digital): Transaction;
     /**

@@ -320,27 +320,27 @@ exports.bytesToF64 = bytesToF64;
 function convert(o, type) {
     if (o instanceof Uint8Array || o instanceof ArrayBuffer) {
         switch (type) {
-            case types_1.ABI_DATA_ENUM.bool:
-            case types_1.ABI_DATA_ENUM.u256:
-            case types_1.ABI_DATA_ENUM.i64:
-            case types_1.ABI_DATA_ENUM.u64:
-            case types_1.ABI_DATA_ENUM.f64: {
+            case types_1.ABI_DATA_TYPE.bool:
+            case types_1.ABI_DATA_TYPE.u256:
+            case types_1.ABI_DATA_TYPE.i64:
+            case types_1.ABI_DATA_TYPE.u64:
+            case types_1.ABI_DATA_TYPE.f64: {
                 throw new Error('cannot convert uint8array to u64, u256 or bool');
             }
-            case types_1.ABI_DATA_ENUM.string: {
+            case types_1.ABI_DATA_TYPE.string: {
                 throw new Error('cannot convert uint8array to string');
             }
-            case types_1.ABI_DATA_ENUM.bytes:
+            case types_1.ABI_DATA_TYPE.bytes:
                 return hex2bin(o);
-            case types_1.ABI_DATA_ENUM.address:
+            case types_1.ABI_DATA_TYPE.address:
                 return normalizeAddress(o);
         }
         throw new Error("unexpected abi type " + type);
     }
     if (typeof o === 'string') {
         switch (type) {
-            case types_1.ABI_DATA_ENUM.u256:
-            case types_1.ABI_DATA_ENUM.u64: {
+            case types_1.ABI_DATA_TYPE.u256:
+            case types_1.ABI_DATA_TYPE.u64: {
                 var ret = void 0;
                 if (o.substr(0, 2) === '0x') {
                     ret = new BN(o.substr(2, o.length - 2), 16);
@@ -348,29 +348,29 @@ function convert(o, type) {
                 else {
                     ret = new BN(o, 10);
                 }
-                if (type === types_1.ABI_DATA_ENUM.u64)
+                if (type === types_1.ABI_DATA_TYPE.u64)
                     assert(ret.cmp(types_1.MAX_U64) <= 0 && !ret.isNeg(), ret.toString(10) + " overflows max u64 " + types_1.MAX_U64.toString(10));
-                if (type === types_1.ABI_DATA_ENUM.u256)
+                if (type === types_1.ABI_DATA_TYPE.u256)
                     assert(ret.cmp(types_1.MAX_U256) <= 0 && !ret.isNeg(), ret.toString(10) + " overflows max u256 " + types_1.MAX_U256.toString(10));
                 return ret;
             }
-            case types_1.ABI_DATA_ENUM.i64: {
+            case types_1.ABI_DATA_TYPE.i64: {
                 if (o.substr(0, 2) === '0x') {
                     var ret = new BN(o.substr(2, o.length - 2), 16);
                     assert(ret.cmp(types_1.MAX_I64) <= 0, ret.toString(10) + " overflows max i64 " + types_1.MAX_I64.toString(10));
                     assert(ret.cmp(types_1.MIN_I64) >= 0, ret.toString(10) + " overflows min i64 " + types_1.MIN_I64.toString(10));
                     return ret;
                 }
-                return convert(parseInt(o), types_1.ABI_DATA_ENUM.i64);
+                return convert(parseInt(o), types_1.ABI_DATA_TYPE.i64);
             }
-            case types_1.ABI_DATA_ENUM.f64: {
+            case types_1.ABI_DATA_TYPE.f64: {
                 var f = parseFloat(o);
                 return f64ToBytes(f);
             }
-            case types_1.ABI_DATA_ENUM.string: {
+            case types_1.ABI_DATA_TYPE.string: {
                 return o;
             }
-            case types_1.ABI_DATA_ENUM.bool: {
+            case types_1.ABI_DATA_TYPE.bool: {
                 var l = o.toLowerCase();
                 if ('true' === l)
                     return types_1.ONE;
@@ -384,9 +384,9 @@ function convert(o, type) {
                     return l;
                 throw new Error("convert " + l + " to bool failed, provide 1 or 0");
             }
-            case types_1.ABI_DATA_ENUM.bytes:
+            case types_1.ABI_DATA_TYPE.bytes:
                 return hex2bin(o);
-            case types_1.ABI_DATA_ENUM.address: {
+            case types_1.ABI_DATA_TYPE.address: {
                 return normalizeAddress(o);
             }
         }
@@ -394,32 +394,32 @@ function convert(o, type) {
     }
     if (typeof o === 'number') {
         switch (type) {
-            case types_1.ABI_DATA_ENUM.u256:
-            case types_1.ABI_DATA_ENUM.u64: {
+            case types_1.ABI_DATA_TYPE.u256:
+            case types_1.ABI_DATA_TYPE.u64: {
                 if (o < 0 || !Number.isInteger(o))
                     throw new Error('o is negative or not a integer');
                 return new BN(o);
             }
-            case types_1.ABI_DATA_ENUM.string: {
+            case types_1.ABI_DATA_TYPE.string: {
                 return o.toString(10);
             }
-            case types_1.ABI_DATA_ENUM.bool: {
+            case types_1.ABI_DATA_TYPE.bool: {
                 if (1 === o || 0 === o)
                     return 1 === o ? types_1.ONE : types_1.ZERO;
                 throw new Error("convert " + o + " to bool failed, provide 1 or 0");
             }
-            case types_1.ABI_DATA_ENUM.bytes:
-            case types_1.ABI_DATA_ENUM.address: {
+            case types_1.ABI_DATA_TYPE.bytes:
+            case types_1.ABI_DATA_TYPE.address: {
                 throw new Error("cannot convert number to address or bytes");
             }
-            case types_1.ABI_DATA_ENUM.i64: {
+            case types_1.ABI_DATA_TYPE.i64: {
                 if (!Number.isInteger(o))
                     throw new Error('o is negative or not a integer');
                 if (o >= 0)
                     return new BN(o);
-                return convert(new BN(o), types_1.ABI_DATA_ENUM.i64);
+                return convert(new BN(o), types_1.ABI_DATA_TYPE.i64);
             }
-            case types_1.ABI_DATA_ENUM.f64: {
+            case types_1.ABI_DATA_TYPE.f64: {
                 return f64ToBytes(o);
             }
         }
@@ -427,25 +427,25 @@ function convert(o, type) {
     }
     if (o instanceof BN) {
         switch (type) {
-            case types_1.ABI_DATA_ENUM.u256:
-            case types_1.ABI_DATA_ENUM.u64: {
+            case types_1.ABI_DATA_TYPE.u256:
+            case types_1.ABI_DATA_TYPE.u64: {
                 if (o.isNeg())
                     throw new Error("cannot convert negative " + o.toString() + " to uint");
                 return o;
             }
-            case types_1.ABI_DATA_ENUM.string: {
+            case types_1.ABI_DATA_TYPE.string: {
                 return o.toString(10);
             }
-            case types_1.ABI_DATA_ENUM.bytes:
-            case types_1.ABI_DATA_ENUM.address: {
+            case types_1.ABI_DATA_TYPE.bytes:
+            case types_1.ABI_DATA_TYPE.address: {
                 throw new Error("cannot convert big number to address or bytes");
             }
-            case types_1.ABI_DATA_ENUM.bool: {
+            case types_1.ABI_DATA_TYPE.bool: {
                 if (o.cmp(new BN(1)) === 0 || o.cmp(new BN(0)) === 0)
                     return o;
                 throw new Error("convert " + o + " to bool failed, provide 1 or 0");
             }
-            case types_1.ABI_DATA_ENUM.i64: {
+            case types_1.ABI_DATA_TYPE.i64: {
                 assert(o.cmp(types_1.MAX_I64) <= 0, o.toString(10) + " overflows max i64 " + types_1.MAX_I64.toString(10));
                 assert(o.cmp(types_1.MIN_I64) >= 0, o.toString(10) + " overflows min i64 " + types_1.MIN_I64.toString(10));
                 if (o.cmp(new BN(0)) >= 0)
@@ -454,7 +454,7 @@ function convert(o, type) {
                 buf = inverse(buf);
                 return new BN(buf).add(types_1.ONE);
             }
-            case types_1.ABI_DATA_ENUM.f64: {
+            case types_1.ABI_DATA_TYPE.f64: {
                 return f64ToBytes(o.toNumber());
             }
         }
@@ -462,22 +462,22 @@ function convert(o, type) {
     }
     if (typeof o === 'boolean') {
         switch (type) {
-            case types_1.ABI_DATA_ENUM.u256:
-            case types_1.ABI_DATA_ENUM.i64:
-            case types_1.ABI_DATA_ENUM.u64: {
+            case types_1.ABI_DATA_TYPE.u256:
+            case types_1.ABI_DATA_TYPE.i64:
+            case types_1.ABI_DATA_TYPE.u64: {
                 return o ? types_1.ONE : types_1.ZERO;
             }
-            case types_1.ABI_DATA_ENUM.string: {
+            case types_1.ABI_DATA_TYPE.string: {
                 return o.toString();
             }
-            case types_1.ABI_DATA_ENUM.bytes:
-            case types_1.ABI_DATA_ENUM.address: {
+            case types_1.ABI_DATA_TYPE.bytes:
+            case types_1.ABI_DATA_TYPE.address: {
                 throw new Error("cannot convert boolean to address or bytes");
             }
-            case types_1.ABI_DATA_ENUM.bool: {
+            case types_1.ABI_DATA_TYPE.bool: {
                 return o ? types_1.ONE : types_1.ZERO;
             }
-            case types_1.ABI_DATA_ENUM.f64: {
+            case types_1.ABI_DATA_TYPE.f64: {
                 return f64ToBytes(o ? 1 : 0);
             }
         }
