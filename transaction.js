@@ -102,7 +102,6 @@ class Transaction {
             let toPubkeyHash = toPubkeyHashStr;
             //长度
             let allPayload = "00000000";
-            console.log(version + type + nonce + fromPubkeyHash + gasPrice + Amount + signull + toPubkeyHash + allPayload);
             let RawTransaction = Buffer.from(version + type + nonce + fromPubkeyHash + gasPrice + Amount + signull + toPubkeyHash + allPayload, 'hex');
             //签名数据
             let secretKey = Buffer.from(prikeyStr + fromPubkeyStr, 'hex');
