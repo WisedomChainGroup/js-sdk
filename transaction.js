@@ -1222,5 +1222,13 @@ class Transaction
     Ripemd160(pubkey){
         return crypto.createHash('ripemd160').update(Buffer.from(pubkey,'hex')).digest('hex');
     }
+
+    Sign(msg,prikey){
+        let secretKey = Buffer.from(prikey, 'hex');
+        let RawTransaction=Buffer.from(msg, 'hex');
+        let sigall = nacl.sign(RawTransaction,secretKey);
+        let sigHex = this.Bytes2Str(sigall).substring(0,128);
+        return sigHex;
+    }
 }
 module.exports = Transaction;
