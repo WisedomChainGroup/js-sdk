@@ -8,7 +8,7 @@
 </head>
 
 <body>
-    <script src="./contract-dist/bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/keystore_wdc@0.4.18-beta/contract-dist/bundle.js"></script>
     <script src="./local/coin.abi.js"></script>
     <script>
         window.onload = function () {
@@ -16,10 +16,11 @@
             console.log(t.BN)
             const sk = 'f0d55ae8a79186e8595514fe23dec8716a191d2bb525998298371693dc69a926'
             const addr = t.publicKeyHash2Address(t.publicKey2Hash(t.privateKey2PublicKey(sk)))
-            const rpc = new t.RPC('8.210.39.91', 19585)
-            const c = new t.Contract('1HnbSn23tVpa1dcchnSrzsTd7aCzaSC2NY', coinABI)
-            rpc.viewContract(c, 'balanceOf', addr)
-                .then(console.log)
+            console.log(addr)
+            // const rpc = new t.RPC('8.210.39.91', 19585)
+            // const c = new t.Contract('1HnbSn23tVpa1dcchnSrzsTd7aCzaSC2NY', coinABI)
+            // rpc.viewContract(c, 'balanceOf', addr)
+            //     .then(console.log)
         }
     </script>
 </body>
