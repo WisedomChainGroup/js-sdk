@@ -270,6 +270,8 @@ var RPC = /** @class */ (function () {
             var confirmed = false;
             var included = false;
             _this.__observe(tx.getHash(), function (resp) {
+                if (resp.status === types_1.TX_STATUS.PENDING && status === types_1.TX_STATUS.PENDING)
+                    resolve();
                 if (resp.status === types_1.TX_STATUS.DROPPED) {
                     var e = { hash: resp.hash, reason: resp.reason };
                     reject(e);

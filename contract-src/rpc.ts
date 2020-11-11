@@ -321,7 +321,7 @@ export class RPC {
     }
 
 
-    observe(tx: Transaction, status: TX_STATUS.INCLUDED | TX_STATUS.CONFIRMED, timeout?: number): Promise<TransactionResult> {
+    observe(tx: Transaction, status: TX_STATUS, timeout?: number): Promise<TransactionResult> {
         status = status === undefined ? TX_STATUS.CONFIRMED : status
         return new Promise((resolve, reject) => {
             let success = false
@@ -337,6 +337,8 @@ export class RPC {
             let included = false
 
             this.__observe(tx.getHash(), (resp: TransactionResp) => {
+                if(resp.status === TX_STATUS.PENDING && status === TX_STATUS.PENDING)
+                    resolve()
                 if (resp.status === TX_STATUS.DROPPED) {
                     const e = { hash: resp.hash, reason: resp.reason }
                     reject(e)

@@ -54,7 +54,7 @@ export declare class RPC {
      * @param tx 事务
      */
     sendTransaction(tx: Transaction | Transaction[]): Promise<void>;
-    observe(tx: Transaction, status: TX_STATUS.INCLUDED | TX_STATUS.CONFIRMED, timeout?: number): Promise<TransactionResult>;
+    observe(tx: Transaction, status: TX_STATUS, timeout?: number): Promise<TransactionResult>;
     private wsRpc;
     /**
      * 发送事务的同时监听事务的状态
