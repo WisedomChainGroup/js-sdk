@@ -512,6 +512,10 @@ class KeyStore {
     Sign(msg,prikey){
         return new Transaction().Sign(msg,prikey+this.prikeyToPubkey(prikey));
     }
+
+    AnalysisRawTransaction(transaction){
+        return new Transaction().AnalysisRawTransaction(transaction);
+    }
     // //存证
     // ClientToTransferProve(fromPubkeyStr,nonce,payloadbyte,prikeyStr){
     //     return new Transaction().ClientToTransferProve(fromPubkeyStr,nonce,payloadbyte,prikeyStr);

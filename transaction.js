@@ -1236,15 +1236,6 @@ class Transaction {
         //接收者公钥哈希
         let toPubkeyHash = transaction.substr(244, 40);
         let payload = transaction.substr(284, transaction.length-284);
-        // //payloadlen
-        // let payloadlen = transaction.substr(348,8);
-        // let payload_decoded = "";
-        // if(payloadlen*1 != 0){
-        //     //payload 类型
-        //     let payload_type = transaction.substr(292,2);
-        //     let payload_RLP = transaction.substr(294,transaction.length-250);
-        //     payload_decoded = RLP.decode(Buffer.from(payload_RLP,'hex'));
-        // }
         return {
             'version': version,
             'type': type,
