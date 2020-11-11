@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BN = exports.getContractAddress = exports.Contract = exports.compileABI = exports.compileContract = exports.TX_STATUS = exports.rlp = exports.RPC = exports.TransactionBuilder = exports.assertAddress = exports.address2PublicKeyHash = exports.rmd160 = exports.bin2hex = exports.publicKey2Hash = exports.publicKeyHash2Address = exports.privateKey2PublicKey = void 0;
+exports.BN = exports.Transaction = exports.ABI = exports.getContractAddress = exports.Contract = exports.compileABI = exports.compileContract = exports.ABI_DATA_TYPE = exports.TX_STATUS = exports.rlp = exports.RPC = exports.TransactionBuilder = exports.assertAddress = exports.address2PublicKeyHash = exports.rmd160 = exports.bin2hex = exports.publicKey2Hash = exports.publicKeyHash2Address = exports.privateKey2PublicKey = void 0;
 var utils_1 = require("./utils");
 Object.defineProperty(exports, "privateKey2PublicKey", { enumerable: true, get: function () { return utils_1.privateKey2PublicKey; } });
 Object.defineProperty(exports, "publicKeyHash2Address", { enumerable: true, get: function () { return utils_1.publicKeyHash2Address; } });
@@ -16,10 +16,14 @@ Object.defineProperty(exports, "RPC", { enumerable: true, get: function () { ret
 exports.rlp = require("./rlp");
 var types_1 = require("./types");
 Object.defineProperty(exports, "TX_STATUS", { enumerable: true, get: function () { return types_1.TX_STATUS; } });
+Object.defineProperty(exports, "ABI_DATA_TYPE", { enumerable: true, get: function () { return types_1.ABI_DATA_TYPE; } });
 var contract_1 = require("./contract");
 Object.defineProperty(exports, "compileContract", { enumerable: true, get: function () { return contract_1.compileContract; } });
 Object.defineProperty(exports, "compileABI", { enumerable: true, get: function () { return contract_1.compileABI; } });
 Object.defineProperty(exports, "Contract", { enumerable: true, get: function () { return contract_1.Contract; } });
 Object.defineProperty(exports, "getContractAddress", { enumerable: true, get: function () { return contract_1.getContractAddress; } });
+Object.defineProperty(exports, "ABI", { enumerable: true, get: function () { return contract_1.ABI; } });
 var BN = require("../bn");
 exports.BN = BN;
+var tx_1 = require("./tx");
+Object.defineProperty(exports, "Transaction", { enumerable: true, get: function () { return tx_1.Transaction; } });
