@@ -421,7 +421,7 @@ export class RPC {
     /**
      * 发送事务的同时监听事务的状态
      */
-    sendAndObserve(tx: Transaction | Transaction[], status: TX_STATUS.INCLUDED | TX_STATUS.CONFIRMED, timeout?: number): Promise<TransactionResult | TransactionResult[]> {
+    sendAndObserve(tx: Transaction | Transaction[], status: TX_STATUS, timeout?: number): Promise<TransactionResult | TransactionResult[]> {
         let ret: Promise<TransactionResult | TransactionResult[]>
         let sub: Promise<Resp>
         if (Array.isArray(tx)) {

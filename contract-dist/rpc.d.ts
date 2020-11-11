@@ -59,7 +59,7 @@ export declare class RPC {
     /**
      * 发送事务的同时监听事务的状态
      */
-    sendAndObserve(tx: Transaction | Transaction[], status: TX_STATUS.INCLUDED | TX_STATUS.CONFIRMED, timeout?: number): Promise<TransactionResult | TransactionResult[]>;
+    sendAndObserve(tx: Transaction | Transaction[], status: TX_STATUS, timeout?: number): Promise<TransactionResult | TransactionResult[]>;
     /**
      * 获取 nonce
      */
