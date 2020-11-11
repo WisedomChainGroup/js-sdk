@@ -4,7 +4,6 @@ exports.RPC = void 0;
 var types_1 = require("./types");
 var utils_1 = require("./utils");
 var rlp_1 = require("./rlp");
-var utils_2 = require("./utils");
 var contract_1 = require("./contract");
 var rlp = require("./rlp");
 var BN = require("../bn");
@@ -84,7 +83,7 @@ var RPC = /** @class */ (function () {
         };
         switch (code) {
             case types_1.WS_CODES.TRANSACTION_EMIT: {
-                var h = utils_2.bin2hex(body[0]);
+                var h = utils_1.bin2hex(body[0]);
                 var s = rlp_1.byteArrayToInt(body[1]);
                 var ret = r;
                 ret.hash = h;
@@ -95,7 +94,7 @@ var RPC = /** @class */ (function () {
                 if (s === types_1.TX_STATUS.INCLUDED) {
                     var arr = body[2];
                     ret.blockHeight = utils_1.toSafeInt(arr[0]);
-                    ret.blockHash = utils_2.bin2hex(arr[1]);
+                    ret.blockHash = utils_1.bin2hex(arr[1]);
                     ret.gasUsed = utils_1.toSafeInt(arr[2]);
                     ret.result = arr[3];
                     ret.events = arr[4];
@@ -104,7 +103,7 @@ var RPC = /** @class */ (function () {
             }
             case types_1.WS_CODES.EVENT_EMIT: {
                 var ret = r;
-                ret.addr = utils_2.bin2hex(body[0]);
+                ret.addr = utils_1.bin2hex(body[0]);
                 ret.name = utils_1.bin2str(body[1]);
                 ret.fields = body[2];
                 return ret;
@@ -147,7 +146,7 @@ var RPC = /** @class */ (function () {
      */
     RPC.prototype.__listen = function (contract, event, func) {
         var addr = utils_1.normalizeAddress(contract.address);
-        var addrHex = utils_2.bin2hex(addr);
+        var addrHex = utils_1.bin2hex(addr);
         this.wsRpc(types_1.WS_CODES.EVENT_SUBSCRIBE, addr);
         var id = ++this.cid;
         var key = addrHex + ":" + event;
@@ -213,7 +212,7 @@ var RPC = /** @class */ (function () {
      */
     RPC.prototype.__observe = function (_hash, cb) {
         var _this = this;
-        var hash = utils_2.bin2hex(_hash);
+        var hash = utils_1.bin2hex(_hash);
         var id = ++this.cid;
         hash = hash.toLowerCase();
         if (!this.txObservers.has(hash))
@@ -269,10 +268,17 @@ var RPC = /** @class */ (function () {
             var ret = {};
             var confirmed = false;
             var included = false;
+            var finished = false;
             _this.__observe(tx.getHash(), function (resp) {
-                if (resp.status === types_1.TX_STATUS.PENDING && status === types_1.TX_STATUS.PENDING)
-                    resolve();
+                if (finished)
+                    return;
+                if (resp.status === types_1.TX_STATUS.PENDING && status === types_1.TX_STATUS.PENDING) {
+                    finished = true;
+                    resolve({ transactionHash: resp.hash });
+                    return;
+                }
                 if (resp.status === types_1.TX_STATUS.DROPPED) {
+                    finished = true;
                     var e = { hash: resp.hash, reason: resp.reason };
                     reject(e);
                     return;
@@ -310,7 +316,7 @@ var RPC = /** @class */ (function () {
                         }
                         ret.events = events;
                     }
-                    ret.transactionHash = utils_2.bin2hex(tx.getHash());
+                    ret.transactionHash = utils_1.bin2hex(tx.getHash());
                     ret.fee = utils_1.toSafeInt((new BN(tx.gasPrice).mul(new BN(ret.gasUsed))));
                     if (tx.isDeployOrCall()) {
                         ret.method = tx.getMethod();

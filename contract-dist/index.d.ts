@@ -1,4 +1,4 @@
-export { privateKey2PublicKey, publicKeyHash2Address, publicKey2Hash, bin2hex, rmd160, address2PublicKeyHash, assertAddress } from './utils';
+export { privateKey2PublicKey, publicKeyHash2Address, publicKey2Hash, bin2hex, rmd160, address2PublicKeyHash, assertAddress, hex2bin, str2bin, bin2str, dig2str } from './utils';
 export { TransactionBuilder } from './builder';
 export { RPC } from './rpc';
 export * as rlp from './rlp';

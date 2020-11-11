@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BN = exports.Transaction = exports.ABI = exports.getContractAddress = exports.Contract = exports.compileABI = exports.compileContract = exports.ABI_DATA_TYPE = exports.TX_STATUS = exports.rlp = exports.RPC = exports.TransactionBuilder = exports.assertAddress = exports.address2PublicKeyHash = exports.rmd160 = exports.bin2hex = exports.publicKey2Hash = exports.publicKeyHash2Address = exports.privateKey2PublicKey = void 0;
+exports.BN = exports.Transaction = exports.ABI = exports.getContractAddress = exports.Contract = exports.compileABI = exports.compileContract = exports.ABI_DATA_TYPE = exports.TX_STATUS = exports.rlp = exports.RPC = exports.TransactionBuilder = exports.dig2str = exports.bin2str = exports.str2bin = exports.hex2bin = exports.assertAddress = exports.address2PublicKeyHash = exports.rmd160 = exports.bin2hex = exports.publicKey2Hash = exports.publicKeyHash2Address = exports.privateKey2PublicKey = void 0;
 var utils_1 = require("./utils");
 Object.defineProperty(exports, "privateKey2PublicKey", { enumerable: true, get: function () { return utils_1.privateKey2PublicKey; } });
 Object.defineProperty(exports, "publicKeyHash2Address", { enumerable: true, get: function () { return utils_1.publicKeyHash2Address; } });
@@ -9,6 +9,10 @@ Object.defineProperty(exports, "bin2hex", { enumerable: true, get: function () {
 Object.defineProperty(exports, "rmd160", { enumerable: true, get: function () { return utils_1.rmd160; } });
 Object.defineProperty(exports, "address2PublicKeyHash", { enumerable: true, get: function () { return utils_1.address2PublicKeyHash; } });
 Object.defineProperty(exports, "assertAddress", { enumerable: true, get: function () { return utils_1.assertAddress; } });
+Object.defineProperty(exports, "hex2bin", { enumerable: true, get: function () { return utils_1.hex2bin; } });
+Object.defineProperty(exports, "str2bin", { enumerable: true, get: function () { return utils_1.str2bin; } });
+Object.defineProperty(exports, "bin2str", { enumerable: true, get: function () { return utils_1.bin2str; } });
+Object.defineProperty(exports, "dig2str", { enumerable: true, get: function () { return utils_1.dig2str; } });
 var builder_1 = require("./builder");
 Object.defineProperty(exports, "TransactionBuilder", { enumerable: true, get: function () { return builder_1.TransactionBuilder; } });
 var rpc_1 = require("./rpc");

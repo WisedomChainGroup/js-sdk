@@ -1,12 +1,11 @@
-import { AbiInput, Binary, Readable, RLPElement, TransactionResult, TX_STATUS, WS_CODES, Event } from "./types"
-import { assert, bin2str, hex2bin, normalizeAddress, toSafeInt, uuidv4 } from "./utils"
-import { byteArrayToInt } from "./rlp"
-import { bin2hex } from "./utils"
-import { Contract, normalizeParams } from "./contract"
-import { Transaction } from "./tx"
-import rlp = require('./rlp')
-import BN = require("../bn")
-import Dict = NodeJS.Dict
+import {AbiInput, Binary, Event, Readable, RLPElement, TransactionResult, TX_STATUS, WS_CODES} from "./types"
+import {assert, bin2hex, bin2str, hex2bin, normalizeAddress, toSafeInt, uuidv4} from "./utils"
+import {byteArrayToInt} from "./rlp"
+import {Contract, normalizeParams} from "./contract"
+import {Transaction} from "./tx"
+import rlp = require('./rlp');
+import BN = require("../bn");
+import Dict = NodeJS.Dict;
 
 export interface Resp {
     code: WS_CODES
@@ -335,11 +334,18 @@ export class RPC {
             let ret: TransactionResult = <TransactionResult>{}
             let confirmed = false
             let included = false
+            let finished = false
 
             this.__observe(tx.getHash(), (resp: TransactionResp) => {
-                if(resp.status === TX_STATUS.PENDING && status === TX_STATUS.PENDING)
-                    resolve()
+                if(finished)
+                    return
+                if(resp.status === TX_STATUS.PENDING && status === TX_STATUS.PENDING){
+                    finished = true
+                    resolve(<any> {transactionHash: resp.hash})
+                    return
+                }
                 if (resp.status === TX_STATUS.DROPPED) {
+                    finished = true
                     const e = { hash: resp.hash, reason: resp.reason }
                     reject(e)
                     return
