@@ -11,6 +11,7 @@ export interface Resp {
 export declare class RPC {
     host: string;
     port: string;
+    timeout: number;
     private callbacks;
     private id2key;
     private id2hash;
@@ -25,8 +26,9 @@ export declare class RPC {
      *
      * @param host  主机名
      * @param port  端口号
+     * @param timeout 超时时间，单位是秒，默认15秒
      */
-    constructor(host?: string, port?: string | number);
+    constructor(host?: string, port?: string | number, timeout?: number);
     private tryConnect;
     private parse;
     private handleData;

@@ -12,10 +12,12 @@ var RPC = /** @class */ (function () {
      *
      * @param host  主机名
      * @param port  端口号
+     * @param timeout 超时时间，单位是秒，默认15秒
      */
-    function RPC(host, port) {
+    function RPC(host, port, timeout) {
         this.host = host || 'localhost';
         this.port = (port || 80).toString();
+        this.timeout = timeout || 15;
         this.callbacks = new Map(); // id -> function
         this.id2key = new Map(); // id -> address:event
         this.id2hash = new Map(); // id -> txhash
@@ -340,6 +342,10 @@ var RPC = /** @class */ (function () {
         this.nonce++;
         var n = this.nonce;
         var ret = new Promise(function (rs, rj) {
+            setTimeout(function () {
+                rj('websocket rpc timeout');
+                _this.rpcCallbacks.delete(n);
+            }, _this.timeout * 1000);
             _this.rpcCallbacks.set(n, rs);
         });
         this.tryConnect()

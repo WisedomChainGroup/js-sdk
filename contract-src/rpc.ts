@@ -34,6 +34,7 @@ interface TransactionResp extends Resp {
 export class RPC {
     host: string
     port: string
+    timeout: number
 
     private callbacks: Map<number, (resp: TransactionResp | EventResp) => void>
     private id2key: Map<number, string>
@@ -50,11 +51,12 @@ export class RPC {
      *
      * @param host  主机名
      * @param port  端口号
+     * @param timeout 超时时间，单位是秒，默认15秒
      */
-    constructor(host?: string, port?: string | number) {
+    constructor(host?: string, port?: string | number, timeout?: number) {
         this.host = host || 'localhost'
         this.port = (port || 80).toString()
-
+        this.timeout = timeout || 15
         this.callbacks = new Map() // id -> function
         this.id2key = new Map()// id -> address:event
         this.id2hash = new Map()  // id -> txhash
@@ -414,6 +416,10 @@ export class RPC {
         this.nonce++
         const n = this.nonce
         const ret = new Promise((rs, rj) => {
+            setTimeout(() => {
+                rj('websocket rpc timeout')
+                this.rpcCallbacks.delete(n)
+            }, this.timeout * 1000)
             this.rpcCallbacks.set(n, rs)
         })
         this.tryConnect()

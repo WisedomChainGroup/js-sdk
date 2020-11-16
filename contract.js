@@ -1553,6 +1553,7 @@
             this.__cid = 0
             this.__rpcCallbacks = new Map() // nonce -> cb
             this.__nonce = 0
+            this.timeout = 15
         }
 
         __tryConnect() {
@@ -1870,6 +1871,10 @@
             this.__nonce++
             const n = this.__nonce
             const ret = new Promise((rs, rj) => {
+                setTimeout(() => {
+                    rj('websocket rpc timeout')
+                    this.__rpcCallbacks.delete(n)
+                }, this.timeout * 1000)
                 this.__rpcCallbacks.set(n, rs)
             })
             this.__tryConnect()

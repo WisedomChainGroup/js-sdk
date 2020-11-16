@@ -48,11 +48,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "0.4.23-beta",
+  "version": "0.4.24-beta",
   "devDependencies": {
     "@babel/core": "^7.12.3",
     "@babel/preset-env": "^7.12.1",
-    "@types/node": "^14.14.2",
+    "@types/node": "^14.14.7",
     "babel-loader": "^8.1.0",
     "ts-loader": "^8.0.7",
     "ts-node": "^9.0.0",
