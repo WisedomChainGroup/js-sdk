@@ -13,10 +13,11 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Transfer = exports.Reflect = exports.RLPHost = exports.ContextHost = exports.DBHost = exports.EventHost = exports.HashHost = exports.Util = exports.Abort = exports.Log = exports.AbstractHost = void 0;
+exports.Uint256Host = exports.Transfer = exports.Reflect = exports.RLPHost = exports.ContextHost = exports.DBHost = exports.EventHost = exports.HashHost = exports.Util = exports.Abort = exports.Log = exports.AbstractHost = void 0;
 var vm_1 = require("./vm");
 var utils_1 = require("./utils");
 var utils_2 = require("./utils");
+var BN = require("../bn");
 var types_1 = require("./types");
 var contract_1 = require("./contract");
 var rlp = require("./rlp");
@@ -27,36 +28,8 @@ var AbstractHost = /** @class */ (function () {
         this.utf8Decoder = new TextDecoder('utf-8');
         this.utf16Decoder = new TextDecoder('utf-16');
     }
-    AbstractHost.prototype.init = function (instance) {
-        this.instance = instance;
-        this.view = new DataView(this.memory);
-    };
-    Object.defineProperty(AbstractHost.prototype, "memory", {
-        get: function () {
-            var mem = this.instance.exports.memory;
-            return mem.buffer;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    AbstractHost.prototype.loadUTF8 = function (offset, length) {
-        return this.utf8Decoder.decode(this.loadN(offset, length));
-    };
-    AbstractHost.prototype.loadUTF16 = function (offset) {
-        return this.utf16Decoder.decode(this.loadBuffer(Number(offset)));
-    };
-    AbstractHost.prototype.loadU32 = function (offset) {
-        return this.view.getUint32(Number(offset), true);
-    };
-    AbstractHost.prototype.loadBuffer = function (offset) {
-        var len = this.loadU32(Number(offset) - 4);
-        return this.loadN(offset, len);
-    };
-    AbstractHost.prototype.loadN = function (offset, length) {
-        return this.view.buffer.slice(Number(offset), Number(offset) + Number(length));
-    };
-    AbstractHost.prototype.put = function (offset, data) {
-        new Uint8Array(this.view.buffer).set(new Uint8Array(data), Number(offset));
+    AbstractHost.prototype.init = function (env) {
+        this.view = new vm_1.MemoryView(env.memory);
     };
     return AbstractHost;
 }());
@@ -69,12 +42,8 @@ var Log = /** @class */ (function (_super) {
     Log.prototype.name = function () {
         return '_log';
     };
-    Log.prototype.execute = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
-        console.log(this.loadUTF8(args[0], args[1]));
+    Log.prototype.execute = function (args) {
+        console.log(this.view.loadUTF8(args[0], args[1]));
     };
     return Log;
 }(AbstractHost));
@@ -84,13 +53,9 @@ var Abort = /** @class */ (function (_super) {
     function Abort() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
-    Abort.prototype.execute = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
-        var msg = vm_1.isZero(args[0]) ? '' : this.loadUTF16(args[0]);
-        var file = vm_1.isZero(args[1]) ? '' : this.loadUTF16(args[1]);
+    Abort.prototype.execute = function (args) {
+        var msg = vm_1.isZero(args[0]) ? '' : this.view.loadUTF16(args[0]);
+        var file = vm_1.isZero(args[1]) ? '' : this.view.loadUTF16(args[1]);
         throw new Error(file + " " + msg + " error at line " + args[2] + " column " + args[3]);
     };
     Abort.prototype.name = function () {
@@ -112,52 +77,47 @@ var Util = /** @class */ (function (_super) {
     function Util() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
-    Util.prototype.execute = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    Util.prototype.execute = function (args) {
         var t = Number(args[0]);
         var put = !vm_1.isZero(args[6]);
         var data = null;
         var ret = BigInt(0);
         switch (t) {
             case UtilType.CONCAT_BYTES: {
-                var a = this.loadN(args[1], args[2]);
-                var b = this.loadN(args[3], args[4]);
+                var a = this.view.loadN(args[1], args[2]);
+                var b = this.view.loadN(args[3], args[4]);
                 data = utils_1.concatBytes(new Uint8Array(a), new Uint8Array(b)).buffer;
                 ret = BigInt(data.byteLength);
                 break;
             }
             case UtilType.DECODE_HEX: {
-                var a = this.loadN(args[1], args[2]);
+                var a = this.view.loadN(args[1], args[2]);
                 var str = utils_2.bin2str(a);
                 data = utils_2.hex2bin(str).buffer;
                 ret = BigInt(data.byteLength);
                 break;
             }
             case UtilType.ENCODE_HEX: {
-                var a = this.loadN(args[1], args[2]);
+                var a = this.view.loadN(args[1], args[2]);
                 var str = utils_2.bin2hex(a);
                 data = utils_2.str2bin(str);
                 ret = BigInt(data.byteLength);
                 break;
             }
             case UtilType.BYTES_TO_U64: {
-                var a = new Uint8Array(this.loadN(args[1], args[2]));
+                var a = new Uint8Array(this.view.loadN(args[1], args[2]));
                 var b = utils_1.padPrefix(a, 0, 8);
                 ret = new DataView(b).getBigUint64(0, false);
                 break;
             }
             case UtilType.U64_TO_BYTES: {
-                var u = args[1];
-                var d = new DataView(new Uint8Array(8));
-                d.setBigUint64(0, u, false);
+                data = utils_1.encodeBE(args[1]);
+                ret = BigInt(data.byteLength);
                 break;
             }
         }
         if (put) {
-            this.put(args[5], data);
+            this.view.put(args[5], data);
         }
         return ret;
     };
@@ -211,12 +171,8 @@ var HashHost = /** @class */ (function (_super) {
     function HashHost() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
-    HashHost.prototype.execute = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
-        var bin = this.loadN(args[1], args[2]);
+    HashHost.prototype.execute = function (args) {
+        var bin = this.view.loadN(args[1], args[2]);
         var t = Number(args[0]);
         var ret;
         switch (t) {
@@ -228,7 +184,7 @@ var HashHost = /** @class */ (function (_super) {
                 throw new Error("hash host: invalid type " + t);
         }
         if (!vm_1.isZero(args[4]))
-            this.put(args[3], ret);
+            this.view.put(args[3], ret);
         return BigInt(ret.byteLength);
     };
     HashHost.prototype.name = function () {
@@ -244,15 +200,11 @@ var EventHost = /** @class */ (function (_super) {
         _this.ctx = ctx;
         return _this;
     }
-    EventHost.prototype.execute = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
-        var name = this.loadUTF8(args[0], args[1]);
+    EventHost.prototype.execute = function (args) {
+        var name = this.view.loadUTF8(args[0], args[1]);
         var abi = this.world.abiCache.get(utils_2.bin2hex(this.ctx.contractAddress));
         var c = new contract_1.Contract('', abi);
-        var fields = rlp.decode(this.loadN(args[2], args[3]));
+        var fields = rlp.decode(this.view.loadN(args[2], args[3]));
         var o = c.abiDecode(name, fields, 'event');
         console.log("Event emit, name = " + name);
         console.log(o);
@@ -270,36 +222,33 @@ var DBHost = /** @class */ (function (_super) {
         _this.ctx = ctx;
         return _this;
     }
-    DBHost.prototype.execute = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    DBHost.prototype.execute = function (args) {
         var t = Number(args[0]);
         switch (t) {
             case DBType.SET: {
                 var addr = utils_2.bin2hex(this.ctx.contractAddress);
-                var k = this.loadN(args[1], args[2]);
-                var val = this.loadN(args[3], args[4]);
+                var k = this.view.loadN(args[1], args[2]);
+                var val = this.view.loadN(args[3], args[4]);
                 var m = this.world.storage.get(addr) || new Map();
                 m.set(utils_2.bin2hex(k), val);
                 this.world.storage.set(addr, m);
-                break;
+                return BigInt(0);
             }
             case DBType.GET: {
                 var addr = utils_2.bin2hex(this.ctx.contractAddress);
-                var k = utils_2.bin2hex(this.loadN(args[1], args[2]));
+                var k = utils_2.bin2hex(this.view.loadN(args[1], args[2]));
                 var m = this.world.storage.get(addr) || new Map();
                 if (!m.has(k))
                     throw new Error("key " + k + " not found in db");
                 var val = m.get(k);
-                if (!vm_1.isZero(args[4]))
-                    this.put(args[3], val);
+                if (!vm_1.isZero(args[4])) {
+                    this.view.put(args[3], val);
+                }
                 return BigInt(val.byteLength);
             }
             case DBType.HAS: {
                 var addr = utils_2.bin2hex(this.ctx.contractAddress);
-                var k = utils_2.bin2hex(this.loadN(args[1], args[2]));
+                var k = utils_2.bin2hex(this.view.loadN(args[1], args[2]));
                 var m = this.world.storage.get(addr) || new Map();
                 return m.has(k) ? BigInt(1) : BigInt(0);
             }
@@ -325,11 +274,7 @@ var ContextHost = /** @class */ (function (_super) {
         _this.ctx = ctx;
         return _this;
     }
-    ContextHost.prototype.execute = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    ContextHost.prototype.execute = function (args) {
         var type = Number(args[0]);
         var ret = BigInt(0);
         var put = !vm_1.isZero(args[2]);
@@ -369,7 +314,7 @@ var ContextHost = /** @class */ (function (_super) {
                 break;
             }
             case ContextType.TX_AMOUNT: {
-                data = utils_1.trimLeadingZeros(this.ctx.amount.toArrayLike(Uint8Array, 'be'));
+                data = utils_1.encodeBE(this.ctx.amount).buffer;
                 ret = BigInt(data.byteLength);
                 break;
             }
@@ -400,14 +345,14 @@ var ContextHost = /** @class */ (function (_super) {
             }
             case ContextType.ACCOUNT_NONCE: {
                 put = false;
-                var addr = utils_2.bin2hex(this.loadN(args[1], args[2]));
+                var addr = utils_2.bin2hex(this.view.loadN(args[1], args[2]));
                 ret = BigInt(this.world.nonceMap.get(utils_2.bin2hex(addr)) || 0);
                 break;
             }
             case ContextType.ACCOUNT_BALANCE: {
-                var addr = utils_2.bin2hex(this.loadN(args[1], args[2]));
+                var addr = utils_2.bin2hex(this.view.loadN(args[1], args[2]));
                 var b = this.world.balanceMap.get(utils_2.bin2hex(addr)) || types_1.ZERO;
-                data = utils_1.trimLeadingZeros(b.toArrayLike(Uint8Array, 'be'));
+                data = utils_1.encodeBE(b).buffer;
                 offset = args[3];
                 put = !vm_1.isZero(args[4]);
                 ret = BigInt(data.byteLength);
@@ -419,7 +364,7 @@ var ContextHost = /** @class */ (function (_super) {
                 break;
             }
             case ContextType.CONTRACT_CODE: {
-                var addr = utils_2.bin2hex(this.loadN(args[1], args[2]));
+                var addr = utils_2.bin2hex(this.view.loadN(args[1], args[2]));
                 var code = this.world.contractCode.get(addr);
                 data = utils_2.str2bin(code);
                 put = !vm_1.isZero(args[4]);
@@ -436,7 +381,7 @@ var ContextHost = /** @class */ (function (_super) {
             }
         }
         if (put)
-            this.put(offset, data);
+            this.view.put(offset, data);
         return ret;
     };
     ContextHost.prototype.name = function () {
@@ -462,11 +407,7 @@ var RLPHost = /** @class */ (function (_super) {
     function RLPHost() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
-    RLPHost.prototype.execute = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    RLPHost.prototype.execute = function (args) {
         var t = Number(args[0]);
         var ret = BigInt(0);
         var put = !vm_1.isZero(args[4]);
@@ -478,13 +419,13 @@ var RLPHost = /** @class */ (function (_super) {
                 break;
             }
             case RLPType.ENCODE_BYTES: {
-                var before = this.loadN(args[1], args[2]);
+                var before = this.view.loadN(args[1], args[2]);
                 data = rlp.encode(before).buffer;
                 ret = BigInt(data.byteLength);
                 break;
             }
             case RLPType.DECODE_BYTES: {
-                var encoded = this.loadN(args[1], args[2]);
+                var encoded = this.view.loadN(args[1], args[2]);
                 var decoded = rlp.decode(encoded);
                 if (!(decoded instanceof Uint8Array))
                     throw new Error('rlp decode failed, not a rlp item');
@@ -494,7 +435,7 @@ var RLPHost = /** @class */ (function (_super) {
             }
             case RLPType.RLP_LIST_SET: {
                 put = false;
-                this.list = rlp.RLPList.fromEncoded(this.loadN(args[1], args[2]));
+                this.list = rlp.RLPList.fromEncoded(this.view.loadN(args[1], args[2]));
                 break;
             }
             case RLPType.RLP_LIST_CLEAR: {
@@ -516,7 +457,7 @@ var RLPHost = /** @class */ (function (_super) {
                 if (!this.elements)
                     this.elements = [];
                 this.elementsEncoded = null;
-                var bytes = this.loadN(args[1], args[2]);
+                var bytes = this.view.loadN(args[1], args[2]);
                 this.elements.push(new Uint8Array(bytes));
                 break;
             }
@@ -536,11 +477,11 @@ var RLPHost = /** @class */ (function (_super) {
             }
         }
         if (put)
-            this.put(args[3], data);
+            this.view.put(args[3], data);
         return ret;
     };
     RLPHost.prototype.name = function () {
-        return "";
+        return '_rlp';
     };
     return RLPHost;
 }(AbstractHost));
@@ -550,11 +491,7 @@ var Reflect = /** @class */ (function (_super) {
     function Reflect() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
-    Reflect.prototype.execute = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
+    Reflect.prototype.execute = function (args) {
         throw new Error('Method not implemented.');
     };
     Reflect.prototype.name = function () {
@@ -570,16 +507,100 @@ var Transfer = /** @class */ (function (_super) {
         _this.ctx = ctx;
         return _this;
     }
-    Transfer.prototype.execute = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
-        throw new Error('Method not implemented.');
+    Transfer.prototype.execute = function (args) {
+        if (!vm_1.isZero(args[0]))
+            throw new Error('transfer: unexpected');
+        var amount = new BN(new Uint8Array(this.view.loadN(args[3], args[4])), 10, 'be');
+        var to = utils_2.bin2hex(this.view.loadN(args[1], args[2]));
+        var contractAddress = utils_2.bin2hex(this.ctx.contractAddress);
+        var contractBalance = this.world.balanceMap.get(contractAddress) || types_1.ZERO;
+        var toBalance = this.world.balanceMap.get(to) || types_1.ZERO;
+        if (contractBalance.cmp(amount) < 0)
+            throw new Error("transfer failed: balance not enough for account " + contractAddress);
+        contractBalance = contractBalance.sub(amount);
+        toBalance = toBalance.add(amount);
+        this.world.balanceMap.set(contractAddress, contractBalance);
+        this.world.balanceMap.set(to, toBalance);
     };
     Transfer.prototype.name = function () {
-        throw new Error('Method not implemented.');
+        return '_transfer';
     };
     return Transfer;
 }(AbstractHost));
 exports.Transfer = Transfer;
+var Uint256Type;
+(function (Uint256Type) {
+    Uint256Type[Uint256Type["PARSE"] = 0] = "PARSE";
+    Uint256Type[Uint256Type["TOSTRING"] = 1] = "TOSTRING";
+    Uint256Type[Uint256Type["ADD"] = 2] = "ADD";
+    Uint256Type[Uint256Type["SUB"] = 3] = "SUB";
+    Uint256Type[Uint256Type["MUL"] = 4] = "MUL";
+    Uint256Type[Uint256Type["DIV"] = 5] = "DIV";
+    Uint256Type[Uint256Type["MOD"] = 6] = "MOD";
+})(Uint256Type || (Uint256Type = {}));
+function mod(n) {
+    while (n.isNeg())
+        n = n.add(types_1.MAX_U256);
+    return n.mod(types_1.MAX_U256);
+}
+var Uint256Host = /** @class */ (function (_super) {
+    __extends(Uint256Host, _super);
+    function Uint256Host() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    Uint256Host.prototype.execute = function (args) {
+        var t = Number(args[0]);
+        var data;
+        var put = !vm_1.isZero(args[6]);
+        var ret = BigInt(0);
+        var offset = args[5];
+        switch (t) {
+            case Uint256Type.ADD: {
+                data = utils_1.encodeBE(mod(this.getX(args).add(this.getY(args))));
+                ret = BigInt(data.byteLength);
+                break;
+            }
+            case Uint256Type.SUB: {
+                data = utils_1.encodeBE(mod(this.getX(args).sub(this.getY(args))));
+                ret = BigInt(data.byteLength);
+                break;
+            }
+            case Uint256Type.MUL: {
+                data = utils_1.encodeBE(mod(this.getX(args).mul(this.getY(args))));
+                ret = BigInt(data.byteLength);
+                break;
+            }
+            case Uint256Type.DIV: {
+                data = utils_1.encodeBE(mod(this.getX(args).div(this.getY(args))));
+                ret = BigInt(data.byteLength);
+                break;
+            }
+            case Uint256Type.MOD: {
+                data = utils_1.encodeBE(mod(this.getX(args).mod(this.getY(args))));
+                ret = BigInt(data.byteLength);
+                break;
+            }
+            case Uint256Type.PARSE: {
+                var str = this.view.loadUTF8(args[1], args[2]);
+                var radix = Number(args[3]);
+                data = utils_1.encodeBE(mod(new BN(str, radix)));
+                ret = BigInt(data.byteLength);
+                break;
+            }
+        }
+        if (put)
+            this.view.put(offset, data);
+        return ret;
+    };
+    Uint256Host.prototype.name = function () {
+        return '_u256';
+    };
+    Uint256Host.prototype.getX = function (args) {
+        return new BN(new Uint8Array(this.view.loadN(args[1], args[2])), 10, 'be');
+    };
+    Uint256Host.prototype.getY = function (args) {
+        return new BN(new Uint8Array(this.view.loadN(args[3], args[4])), 10, 'be');
+    };
+    return Uint256Host;
+}(AbstractHost));
+exports.Uint256Host = Uint256Host;

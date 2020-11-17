@@ -1,5 +1,5 @@
-import { isZero, VirtualMachine } from './vm'
-import { concatBytes, dig2str, digest, encodeBE, padPrefix, trimLeadingZeros } from "./utils"
+import { isZero, MemoryView, VirtualMachine } from './vm'
+import { concatBytes, digest, encodeBE, padPrefix } from "./utils"
 import { bin2hex, bin2str, hex2bin, str2bin } from './utils'
 import BN = require('../bn')
 import { MAX_U256, ZERO } from './types'
@@ -9,12 +9,13 @@ import * as rlp from './rlp'
 
 export abstract class AbstractHost {
     instance: WebAssembly.Instance = null
-    view: DataView
+    view: MemoryView
     world: VirtualMachine
     utf8Decoder: TextDecoder
     utf16Decoder: TextDecoder
     nonce: number
     deploy: boolean
+    memory: ArrayBuffer
 
     constructor(world: VirtualMachine) {
         this.world = world
@@ -22,45 +23,14 @@ export abstract class AbstractHost {
         this.utf16Decoder = new TextDecoder('utf-16')
     }
 
-    init(instance: WebAssembly.Instance): void {
-        this.instance = instance
-        this.view = new DataView(this.memory)
+    init(env: { memory: WebAssembly.Memory }): void {
+        this.view = new MemoryView(env.memory)
     }
 
-    get memory(): ArrayBuffer {
-        const mem = <WebAssembly.Memory>this.instance.exports.memory
-        return mem.buffer
-    }
 
-    abstract execute(...args: (number | bigint)[]): void | number | bigint
+    abstract execute(args: (number | bigint)[]): void | number | bigint
 
     abstract name(): string
-
-    loadUTF8(offset: number | bigint, length: number | bigint): string {
-        return this.utf8Decoder.decode(this.loadN(offset, length))
-    }
-
-    loadUTF16(offset: number | bigint): string {
-        return this.utf16Decoder.decode(this.loadBuffer(Number(offset)))
-    }
-
-    loadU32(offset: number | bigint) {
-        return this.view.getUint32(Number(offset), true)
-    }
-
-
-    loadBuffer(offset: number | bigint) {
-        let len = this.loadU32(Number(offset) - 4)
-        return this.loadN(offset, len)
-    }
-
-    loadN(offset: number | bigint, length: number | bigint): ArrayBuffer {
-        return this.view.buffer.slice(Number(offset), Number(offset) + Number(length))
-    }
-
-    put(offset: number | bigint, data: ArrayBuffer): void {
-        new Uint8Array(this.view.buffer).set(new Uint8Array(data), Number(offset))
-    }
 }
 
 export class Log extends AbstractHost {
@@ -68,15 +38,15 @@ export class Log extends AbstractHost {
         return '_log'
     }
 
-    execute(...args: (number | bigint)[]): void {
-        console.log(this.loadUTF8(args[0], args[1]))
+    execute(args: (number | bigint)[]): void {
+        console.log(this.view.loadUTF8(args[0], args[1]))
     }
 }
 
 export class Abort extends AbstractHost {
-    execute(...args: (number | bigint)[]): void {
-        let msg = isZero(args[0]) ? '' : this.loadUTF16(args[0])
-        let file = isZero(args[1]) ? '' : this.loadUTF16(args[1])
+    execute(args: (number | bigint)[]): void {
+        let msg = isZero(args[0]) ? '' : this.view.loadUTF16(args[0])
+        let file = isZero(args[1]) ? '' : this.view.loadUTF16(args[1])
         throw new Error(`${file} ${msg} error at line ${args[2]} column ${args[3]}`)
     }
     name(): string {
@@ -95,8 +65,7 @@ enum UtilType {
 
 export class Util extends AbstractHost {
 
-
-    execute(...args: bigint[]): bigint {
+    execute(args: bigint[]): bigint { 
         let t = Number(args[0])
         let put = !isZero(args[6])
         let data: ArrayBuffer = null
@@ -104,41 +73,40 @@ export class Util extends AbstractHost {
 
         switch (t) {
             case UtilType.CONCAT_BYTES: {
-                let a = this.loadN(args[1], args[2])
-                let b = this.loadN(args[3], args[4])
+                let a = this.view.loadN(args[1], args[2])
+                let b = this.view.loadN(args[3], args[4])
                 data = concatBytes(new Uint8Array(a), new Uint8Array(b)).buffer
                 ret = BigInt(data.byteLength)
                 break
             }
             case UtilType.DECODE_HEX: {
-                let a = this.loadN(args[1], args[2])
+                let a = this.view.loadN(args[1], args[2])
                 let str = bin2str(a)
                 data = hex2bin(str).buffer
                 ret = BigInt(data.byteLength)
                 break
             }
             case UtilType.ENCODE_HEX: {
-                let a = this.loadN(args[1], args[2])
+                let a = this.view.loadN(args[1], args[2])
                 let str = bin2hex(a)
                 data = str2bin(str)
                 ret = BigInt(data.byteLength)
                 break
             }
             case UtilType.BYTES_TO_U64: {
-                let a = new Uint8Array(this.loadN(args[1], args[2]))
+                let a = new Uint8Array(this.view.loadN(args[1], args[2]))
                 let b = padPrefix(a, 0, 8)
                 ret = new DataView(b).getBigUint64(0, false)
                 break
             }
             case UtilType.U64_TO_BYTES: {
-                let u = args[1]
-                let d = new DataView(new Uint8Array(8))
-                d.setBigUint64(0, u, false)
+                data = encodeBE(args[1])
+                ret = BigInt(data.byteLength)
                 break
             }
         }
         if (put) {
-            this.put(args[5], data)
+            this.view.put(args[5], data)
         }
         return ret
     }
@@ -191,8 +159,8 @@ enum Algorithm {
 }
 
 export class HashHost extends AbstractHost {
-    execute(...args: bigint[]): bigint {
-        let bin = this.loadN(args[1], args[2])
+    execute(args: bigint[]): bigint {
+        let bin = this.view.loadN(args[1], args[2])
         let t = Number(args[0])
         let ret: ArrayBuffer
         switch (t) {
@@ -205,7 +173,7 @@ export class HashHost extends AbstractHost {
         }
 
         if (!isZero(args[4]))
-            this.put(args[3], ret)
+            this.view.put(args[3], ret)
         return BigInt(ret.byteLength)
     }
     name(): string {
@@ -222,11 +190,11 @@ export class EventHost extends AbstractHost {
         this.ctx = ctx
     }
 
-    execute(...args: bigint[]): void {
-        const name = this.loadUTF8(args[0], args[1])
+    execute(args: bigint[]): void {
+        const name = this.view.loadUTF8(args[0], args[1])
         let abi = this.world.abiCache.get(bin2hex(this.ctx.contractAddress))
         const c = new Contract('', abi)
-        let fields = <Uint8Array[]>rlp.decode(this.loadN(args[2], args[3]))
+        let fields = <Uint8Array[]>rlp.decode(this.view.loadN(args[2], args[3]))
         let o = c.abiDecode(name, fields, 'event')
         console.log(`Event emit, name = ${name}`)
         console.log(o)
@@ -240,32 +208,35 @@ export class EventHost extends AbstractHost {
 
 export class DBHost extends AbstractHost {
     ctx: CallContext
-    execute(...args: bigint[]): bigint {
+
+    
+    execute(args: bigint[]): bigint {
         let t = Number(args[0])
         switch (t) {
             case DBType.SET: {
                 let addr = bin2hex(this.ctx.contractAddress)
-                let k = this.loadN(args[1], args[2])
-                let val = this.loadN(args[3], args[4])
+                let k = this.view.loadN(args[1], args[2])
+                let val = this.view.loadN(args[3], args[4])
                 let m = this.world.storage.get(addr) || new Map<string, ArrayBuffer>()
                 m.set(bin2hex(k), val)
                 this.world.storage.set(addr, m)
-                break
+                return BigInt(0)
             }
             case DBType.GET: {
                 let addr = bin2hex(this.ctx.contractAddress)
-                let k = bin2hex(this.loadN(args[1], args[2]))
+                let k = bin2hex(this.view.loadN(args[1], args[2]))
                 let m = this.world.storage.get(addr) || new Map<string, ArrayBuffer>()
                 if (!m.has(k))
                     throw new Error(`key ${k} not found in db`)
                 let val = m.get(k)
-                if (!isZero(args[4]))
-                    this.put(args[3], val)
+                if (!isZero(args[4])){
+                    this.view.put(args[3], val)
+                }
                 return BigInt(val.byteLength)
             }
             case DBType.HAS: {
                 let addr = bin2hex(this.ctx.contractAddress)
-                let k = bin2hex(this.loadN(args[1], args[2]))
+                let k = bin2hex(this.view.loadN(args[1], args[2]))
                 let m = this.world.storage.get(addr) || new Map<string, ArrayBuffer>()
                 return m.has(k) ? BigInt(1) : BigInt(0)
             }
@@ -300,7 +271,7 @@ export class ContextHost extends AbstractHost {
         this.ctx = ctx
     }
 
-    execute(...args: bigint[]): bigint {
+    execute(args: bigint[]): bigint {
         let type = Number(args[0])
         let ret = BigInt(0)
         let put = !isZero(args[2])
@@ -372,12 +343,12 @@ export class ContextHost extends AbstractHost {
             }
             case ContextType.ACCOUNT_NONCE: {
                 put = false
-                let addr = bin2hex(this.loadN(args[1], args[2]))
+                let addr = bin2hex(this.view.loadN(args[1], args[2]))
                 ret = BigInt(this.world.nonceMap.get(bin2hex(addr)) || 0)
                 break
             }
             case ContextType.ACCOUNT_BALANCE: {
-                let addr = bin2hex(this.loadN(args[1], args[2]))
+                let addr = bin2hex(this.view.loadN(args[1], args[2]))
                 let b = this.world.balanceMap.get(bin2hex(addr)) || ZERO
                 data = encodeBE(b).buffer
                 offset = args[3]
@@ -391,7 +362,7 @@ export class ContextHost extends AbstractHost {
                 break
             }
             case ContextType.CONTRACT_CODE: {
-                let addr = bin2hex(this.loadN(args[1], args[2]))
+                let addr = bin2hex(this.view.loadN(args[1], args[2]))
                 let code = this.world.contractCode.get(addr)
                 data = str2bin(code)
                 put = !isZero(args[4])
@@ -409,7 +380,7 @@ export class ContextHost extends AbstractHost {
         }
 
         if (put)
-            this.put(offset, data)
+            this.view.put(offset, data)
         return ret
     }
     name(): string {
@@ -435,7 +406,7 @@ export class RLPHost extends AbstractHost{
     elements: Uint8Array[]
     elementsEncoded: ArrayBuffer
 
-    execute(...args: bigint[]): bigint {
+    execute(args: bigint[]): bigint {
         const t = Number(args[0])
         let ret = BigInt(0)
         let put = !isZero(args[4])
@@ -448,13 +419,13 @@ export class RLPHost extends AbstractHost{
                 break
             }
             case RLPType.ENCODE_BYTES: {
-                let before = this.loadN(args[1], args[2])
+                let before = this.view.loadN(args[1], args[2])
                 data = rlp.encode(before).buffer
                 ret = BigInt(data.byteLength)
                 break
             }
             case RLPType.DECODE_BYTES: {
-                let encoded = this.loadN(args[1], args[2])
+                let encoded = this.view.loadN(args[1], args[2])
                 let decoded = rlp.decode(encoded)
                 if(!(decoded instanceof Uint8Array))
                     throw new Error('rlp decode failed, not a rlp item')
@@ -463,8 +434,8 @@ export class RLPHost extends AbstractHost{
                 break
             }
             case RLPType.RLP_LIST_SET: {
-                put = false;
-                this.list = rlp.RLPList.fromEncoded(this.loadN(args[1], args[2]))
+                put = false
+                this.list = rlp.RLPList.fromEncoded(this.view.loadN(args[1], args[2]))
                 break
             }
             case RLPType.RLP_LIST_CLEAR: {
@@ -473,7 +444,7 @@ export class RLPHost extends AbstractHost{
                 break
             }
             case RLPType.RLP_LIST_LEN: {
-                put = false;
+                put = false
                 ret = BigInt(this.list.length())
             }
             case RLPType.RLP_LIST_GET: {
@@ -486,7 +457,7 @@ export class RLPHost extends AbstractHost{
                 if (!this.elements)
                     this.elements = []
                 this.elementsEncoded = null;
-                let bytes = this.loadN(args[1], args[2])
+                let bytes = this.view.loadN(args[1], args[2])
                 this.elements.push(new Uint8Array(bytes))
                 break
             }
@@ -499,25 +470,25 @@ export class RLPHost extends AbstractHost{
                     this.elementsEncoded = null;
                     this.elements = null;
                 }
-                break;
+                break
             }
             default: {
                 throw new Error(`rlp: unknown type: ${t}`)
             }
         }
         if (put)
-            this.put(args[3], data)
+            this.view.put(args[3], data)
         return ret
     }
 
     name(): string {
-        return "";
+        return '_rlp';
     }
 
 }
 
 export class Reflect extends AbstractHost{
-    execute(...args: (number | bigint)[]): number | bigint | void {
+    execute(args: (number | bigint)[]): number | bigint | void {
         throw new Error('Method not implemented.')
     }
     name(): string {
@@ -534,11 +505,11 @@ export class Transfer extends AbstractHost{
         this.ctx = ctx
     }
 
-    execute(...args: bigint[]): void {
+    execute(args: bigint[]): void {
         if(!isZero(args[0]))
             throw new Error('transfer: unexpected')
-        let amount = new BN(new Uint8Array(this.loadN(args[3], args[4])), 10, 'be')
-        let to = bin2hex(this.loadN(args[1], args[2]))
+        let amount = new BN(new Uint8Array(this.view.loadN(args[3], args[4])), 10, 'be')
+        let to = bin2hex(this.view.loadN(args[1], args[2]))
         let contractAddress = bin2hex(this.ctx.contractAddress)
         let contractBalance = this.world.balanceMap.get(contractAddress) || ZERO
         let toBalance = this.world.balanceMap.get(to) || ZERO
@@ -573,7 +544,7 @@ function mod(n: BN): BN{
 }
 
 export class Uint256Host extends AbstractHost{
-    execute(...args: bigint[]): bigint {
+    execute(args: bigint[]): bigint {
         const t = Number(args[0])
         let data: ArrayBuffer
         let put = !isZero(args[6])
@@ -597,7 +568,7 @@ export class Uint256Host extends AbstractHost{
                 break
             }
             case Uint256Type.DIV: {
-                data = encodeBE(mod(this.getX(args).sub(this.getY(args))))
+                data = encodeBE(mod(this.getX(args).div(this.getY(args))))
                 ret = BigInt(data.byteLength)
                 break
             }
@@ -607,7 +578,7 @@ export class Uint256Host extends AbstractHost{
                 break
             }
             case Uint256Type.PARSE: {
-                let str = this.loadUTF8(args[1], args[2])
+                let str = this.view.loadUTF8(args[1], args[2])
                 let radix = Number(args[3])
                 data = encodeBE(mod(new BN(str, radix)))
                 ret = BigInt(data.byteLength)
@@ -615,7 +586,7 @@ export class Uint256Host extends AbstractHost{
             }
         }
         if(put)
-            this.put(offset, data)
+            this.view.put(offset, data)
         return ret
     }
     name(): string {
@@ -623,10 +594,10 @@ export class Uint256Host extends AbstractHost{
     }
 
     getX(args: bigint[]): BN{
-        return new BN(new Uint8Array(this.loadN(args[1], args[2])), 10, 'be')
+        return new BN(new Uint8Array(this.view.loadN(args[1], args[2])), 10, 'be')
     }
 
     getY(args: bigint[]): BN{
-        return new BN(new Uint8Array(this.loadN(args[3], args[4])), 10, 'be')
+        return new BN(new Uint8Array(this.view.loadN(args[3], args[4])), 10, 'be')
     }
 }

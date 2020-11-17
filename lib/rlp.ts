@@ -1,4 +1,4 @@
-import { U256, Address, Context, ABI_DATA_TYPE } from '.'
+import { U256, Address, Context, ABI_DATA_TYPE, log } from '.'
 import { Util } from './util';
 const OFFSET_SHORT_LIST: u8 = 0xc0;
 

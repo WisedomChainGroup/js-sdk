@@ -593,6 +593,27 @@ export function bin2hex(s: Binary): string {
 }
 
 export function encodeBE(i: Digital): Uint8Array {
-    let n = i instanceof BN ? i : new BN(i.toString())
+    let n = dig2BN(i)
     return trimLeadingZeros(n.toArrayLike(Uint8Array, 'be'))
+}
+
+export function encodeUint32(i: number | bigint): ArrayBuffer{
+    let buf = new ArrayBuffer(4)
+    let v = new DataView(buf)
+    v.setUint32(0, Number(i), true)
+    return buf
+}
+
+export function dig2BN(i: Digital): BN{
+    return i instanceof BN ? i : new BN(i.toString())
+}
+
+export function dig2BigInt(i: Digital): bigint{
+    if(typeof i === 'bigint')
+        return i
+    if(typeof i === 'string')
+        return i.startsWith('0x') ? BigInt(new BN(i, 16).toString(10)) : BigInt(i)
+    if(i instanceof BN)
+        return BigInt(i.toString(10))
+    return BigInt(i)
 }

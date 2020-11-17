@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.bin2hex = exports.uuidv4 = exports.bin2str = exports.toSafeInt = exports.inverse = exports.convert = exports.bytesToF64 = exports.padPrefix = exports.f64ToBytes = exports.trimLeadingZeros = exports.str2bin = exports.normalizeAddress = exports.assertAddress = exports.concatBytes = exports.concatArray = exports.extendPrivateKey = exports.publicKeyHash2Address = exports.address2PublicKeyHash = exports.publicKey2Hash = exports.privateKey2PublicKey = exports.compareBytes = exports.dig2str = exports.hex2bin = exports.assert = exports.rmd160 = exports.digest = exports.isBin = void 0;
+exports.dig2BigInt = exports.dig2BN = exports.encodeUint32 = exports.encodeBE = exports.bin2hex = exports.uuidv4 = exports.bin2str = exports.toSafeInt = exports.inverse = exports.convert = exports.bytesToF64 = exports.padPrefix = exports.f64ToBytes = exports.trimLeadingZeros = exports.str2bin = exports.normalizeAddress = exports.assertAddress = exports.concatBytes = exports.concatArray = exports.extendPrivateKey = exports.publicKeyHash2Address = exports.address2PublicKeyHash = exports.publicKey2Hash = exports.privateKey2PublicKey = exports.compareBytes = exports.dig2str = exports.hex2bin = exports.assert = exports.rmd160 = exports.digest = exports.isBin = void 0;
 var types_1 = require("./types");
 var nacl = require("../nacl.min.js");
 var RMD160 = (new (require('../hashes.js').RMD160));
@@ -559,3 +559,29 @@ function bin2hex(s) {
     return Array.prototype.map.call(s, function (x) { return ('00' + x.toString(16)).slice(-2); }).join('');
 }
 exports.bin2hex = bin2hex;
+function encodeBE(i) {
+    var n = dig2BN(i);
+    return trimLeadingZeros(n.toArrayLike(Uint8Array, 'be'));
+}
+exports.encodeBE = encodeBE;
+function encodeUint32(i) {
+    var buf = new ArrayBuffer(4);
+    var v = new DataView(buf);
+    v.setUint32(0, Number(i), true);
+    return buf;
+}
+exports.encodeUint32 = encodeUint32;
+function dig2BN(i) {
+    return i instanceof BN ? i : new BN(i.toString());
+}
+exports.dig2BN = dig2BN;
+function dig2BigInt(i) {
+    if (typeof i === 'bigint')
+        return i;
+    if (typeof i === 'string')
+        return i.startsWith('0x') ? BigInt(new BN(i, 16).toString(10)) : BigInt(i);
+    if (i instanceof BN)
+        return BigInt(i.toString(10));
+    return BigInt(i);
+}
+exports.dig2BigInt = dig2BigInt;

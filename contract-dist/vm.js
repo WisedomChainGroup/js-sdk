@@ -36,12 +36,49 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.VirtualMachine = exports.isZero = void 0;
+exports.VirtualMachine = exports.isZero = exports.MemoryView = void 0;
 var utils_1 = require("./utils");
 var contract_1 = require("./contract");
 var types_1 = require("./types");
 var hosts_1 = require("./hosts");
+var BN = require("../bn");
 var rlp = require("./rlp");
+var utf16Decoder = new TextDecoder('utf-16');
+var utf8Decoder = new TextDecoder();
+function strEncodeUTF16(str) {
+    var buf = new ArrayBuffer(str.length * 2);
+    var bufView = new Uint16Array(buf);
+    for (var i = 0, strLen = str.length; i < strLen; i++) {
+        bufView[i] = str.charCodeAt(i);
+    }
+    return buf;
+}
+var MemoryView = /** @class */ (function () {
+    function MemoryView(mem) {
+        this.view = new DataView(mem.buffer);
+    }
+    MemoryView.prototype.loadUTF8 = function (offset, length) {
+        return utf8Decoder.decode(this.loadN(offset, length));
+    };
+    MemoryView.prototype.loadUTF16 = function (offset) {
+        return utf16Decoder.decode(this.loadBuffer(Number(offset)));
+    };
+    MemoryView.prototype.loadU32 = function (offset) {
+        return this.view.getUint32(Number(offset), true);
+    };
+    MemoryView.prototype.loadBuffer = function (offset) {
+        var len = this.loadU32(Number(offset) - 4);
+        return this.loadN(offset, len);
+    };
+    MemoryView.prototype.loadN = function (offset, length) {
+        return this.view.buffer.slice(Number(offset), Number(offset) + Number(length));
+    };
+    MemoryView.prototype.put = function (offset, data) {
+        new Uint8Array(this.view.buffer).set(new Uint8Array(data), Number(offset));
+    };
+    return MemoryView;
+}());
+exports.MemoryView = MemoryView;
 function isZero(n) {
     return n === 0 || n === BigInt(0);
 }
@@ -67,6 +104,75 @@ var VirtualMachine = /** @class */ (function () {
             throw new Error('webassembly not available here');
         this.nextBlock();
     }
+    VirtualMachine.prototype.normParams = function (abi, params) {
+        var p = contract_1.normalizeParams(params);
+        if (Array.isArray(p))
+            return p;
+        var ret = [];
+        abi.inputs.forEach(function (i) {
+            ret.push(params[i.name]);
+        });
+        return ret;
+    };
+    VirtualMachine.prototype.putParams = function (instance, abi, params) {
+        var arr;
+        if (Array.isArray(params)) {
+            arr = params;
+        }
+        else {
+            arr = [];
+            abi.inputs.forEach(function (x) { return arr.push(params[x.name]); });
+        }
+        for (var i = 0; i < abi.inputs.length; i++) {
+            var t = types_1.ABI_DATA_TYPE[abi.inputs[i].type];
+            var id = instance.exports.__idof(t);
+        }
+    };
+    VirtualMachine.prototype.malloc = function (instance, val, type) {
+        var view = new MemoryView(instance.exports.memory);
+        var data;
+        var id = Number(instance.exports.__idof(type));
+        var offset;
+        switch (type) {
+            case types_1.ABI_DATA_TYPE.bool:
+            case types_1.ABI_DATA_TYPE.f64:
+            case types_1.ABI_DATA_TYPE.i64:
+            case types_1.ABI_DATA_TYPE.u64: {
+                var converted = utils_1.convert(val, type);
+                var l = (converted instanceof Uint8Array ? new BN(converted, 10, 'be') : converted);
+                return BigInt(l.toString(10));
+            }
+            case types_1.ABI_DATA_TYPE.string: {
+                var converted = utils_1.convert(val, type);
+                data = strEncodeUTF16(converted);
+                offset = instance.exports.__alloc(data.byteLength, id);
+                break;
+            }
+            case types_1.ABI_DATA_TYPE.bytes: {
+                data = utils_1.convert(val, types_1.ABI_DATA_TYPE.bytes).buffer;
+                offset = instance.exports.__alloc(data.byteLength, id);
+                break;
+            }
+            case types_1.ABI_DATA_TYPE.u256: {
+                var converted = utils_1.convert(val, type);
+                var buf = utils_1.encodeBE(converted).buffer;
+                var ptr = this.malloc(instance, buf, types_1.ABI_DATA_TYPE.bytes);
+                data = utils_1.encodeUint32(ptr);
+                offset = instance.exports.__alloc(4, id);
+                break;
+            }
+            case types_1.ABI_DATA_TYPE.address: {
+                var buf = utils_1.convert(val, types_1.ABI_DATA_TYPE.address).buffer;
+                offset = instance.exports.__alloc(4, id);
+                var ptr = this.malloc(instance, buf, types_1.ABI_DATA_TYPE.bytes);
+                data = utils_1.encodeUint32(ptr);
+                break;
+            }
+        }
+        view.put(offset, data);
+        instance.exports.__retain(offset);
+        return offset;
+    };
     VirtualMachine.prototype.alloc = function (address, amount) {
         this.balanceMap.set(utils_1.bin2hex(utils_1.normalizeAddress(address)), utils_1.convert(amount, types_1.ABI_DATA_TYPE.u256));
     };
@@ -88,7 +194,7 @@ var VirtualMachine = /** @class */ (function () {
     // 合约部署
     VirtualMachine.prototype.deploy = function (sender, wasmFile, parameters, amount) {
         return __awaiter(this, void 0, void 0, function () {
-            var senderAddress, n, txHash, contractAddress, abi, mem, env_1, hosts, instance_1;
+            var senderAddress, n, txHash, contractAddress, abi, a, ctx, mem, env_1, hosts, instance, arr, args, i;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -97,30 +203,54 @@ var VirtualMachine = /** @class */ (function () {
                         n = (this.nonceMap.get(senderAddress) || 0) + 1;
                         txHash = utils_1.digest(rlp.encode([utils_1.normalizeAddress(sender), n]));
                         contractAddress = contract_1.getContractAddress(txHash);
-                        return [4 /*yield*/, this.fetchABI(wasmFile)
-                            // try to execute init function
-                        ];
+                        return [4 /*yield*/, this.fetchABI(wasmFile)];
                     case 1:
                         abi = _a.sent();
-                        if (!(abi.filter(function (x) { return x.type === 'function' && x.name === 'init'; }).length > 0)) return [3 /*break*/, 3];
-                        mem = new WebAssembly.Memory({ initial: 10, maximum: 1024 });
-                        env_1 = {
-                            memory: mem
+                        a = abi.filter(function (x) { return x.type === 'function' && x.name === 'init'; })[0];
+                        if (!a) return [3 /*break*/, 3];
+                        ctx = {
+                            type: 16,
+                            sender: utils_1.normalizeAddress(sender).buffer,
+                            to: new Uint8Array(20).buffer,
+                            amount: utils_1.dig2BN(amount || types_1.ZERO),
+                            nonce: n,
+                            origin: utils_1.normalizeAddress(sender).buffer,
+                            txHash: txHash.buffer,
+                            contractAddress: utils_1.address2PublicKeyHash(contractAddress).buffer
                         };
-                        hosts = [new hosts_1.Log(this), new hosts_1.Abort(this), new hosts_1.Util(this)];
+                        mem = new WebAssembly.Memory({ initial: 10, maximum: 65535 });
+                        env_1 = {
+                            memory: mem,
+                        };
+                        hosts = [
+                            new hosts_1.Log(this), new hosts_1.Abort(this), new hosts_1.Util(this),
+                            new hosts_1.HashHost(this), new hosts_1.EventHost(this, ctx), new hosts_1.DBHost(this, ctx),
+                            new hosts_1.ContextHost(this, ctx), new hosts_1.RLPHost(this), new hosts_1.Reflect(this),
+                            new hosts_1.Transfer(this, ctx), new hosts_1.Uint256Host(this)
+                        ];
                         hosts.forEach(function (h) {
-                            env_1[h.name()] = h.execute.bind(h);
+                            h.init(env_1);
+                            env_1[h.name()] = function () {
+                                var args = [];
+                                for (var _i = 0; _i < arguments.length; _i++) {
+                                    args[_i] = arguments[_i];
+                                }
+                                return h.execute(args);
+                            };
                         });
                         return [4 /*yield*/, WebAssembly.instantiateStreaming(fetch(wasmFile), {
                                 env: env_1
                             })];
                     case 2:
-                        instance_1 = (_a.sent()).instance;
-                        hosts.forEach(function (h) {
-                            h.init(instance_1);
-                        });
-                        if (typeof instance_1.exports.init === 'function')
-                            instance_1.exports.init();
+                        instance = (_a.sent()).instance;
+                        if (typeof instance.exports.init === 'function') {
+                            arr = this.normParams(a, parameters);
+                            args = [];
+                            for (i = 0; i < a.inputs.length; i++) {
+                                args.push(this.malloc(instance, arr[i], types_1.ABI_DATA_TYPE[a.inputs[i].type]));
+                            }
+                            instance.exports.init.apply(this, args);
+                        }
                         _a.label = 3;
                     case 3:
                         this.abiCache.set(contractAddress, abi);

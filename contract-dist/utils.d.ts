@@ -84,3 +84,6 @@ export declare function bin2str(_bin: Binary): string;
 export declare function uuidv4(): string;
 export declare function bin2hex(s: Binary): string;
 export declare function encodeBE(i: Digital): Uint8Array;
+export declare function encodeUint32(i: number | bigint): ArrayBuffer;
+export declare function dig2BN(i: Digital): BN;
+export declare function dig2BigInt(i: Digital): bigint;
