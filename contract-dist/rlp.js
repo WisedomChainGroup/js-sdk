@@ -157,6 +157,8 @@ function encodeString(s) {
 }
 exports.encodeString = encodeString;
 function encode(o) {
+    if (typeof o === 'bigint')
+        o = new BN(o.toString());
     if (o && (typeof o.getEncoded === 'function')) {
         return o.getEncoded();
     }

@@ -1,7 +1,9 @@
-/// <reference types="node" />
 import { ABI_DATA_TYPE, ABI_TYPE, AbiInput, Binary, Readable } from "./types";
 import BN = require("../bn");
-import Dict = NodeJS.Dict;
+/**
+ * 合约部署的 paylod
+ */
+export declare function abiToBinary(abi: ABI[]): any[];
 /**
  * 计算合约地址
  */
@@ -29,17 +31,17 @@ export declare class ABI {
     static from(o: any): ABI;
     returnsObj(): boolean;
     inputsObj(): boolean;
-    toObj(arr: AbiInput[], input: boolean): Dict<AbiInput>;
-    toArr(obj: Dict<AbiInput>, input: boolean): AbiInput[];
+    toObj(arr: AbiInput[], input: boolean): Record<string, AbiInput>;
+    toArr(obj: Record<string, AbiInput>, input: boolean): AbiInput[];
 }
-export declare function normalizeParams(params?: AbiInput | AbiInput[] | Dict<AbiInput>): AbiInput[] | Dict<AbiInput>;
+export declare function normalizeParams(params?: AbiInput | AbiInput[] | Record<string, AbiInput>): AbiInput[] | Record<string, AbiInput>;
 export declare class Contract {
     address: string;
     abi: ABI[];
     binary: Uint8Array;
     constructor(address?: Binary, abi?: ABI[], binary?: ArrayBuffer | Uint8Array);
-    abiEncode(name: string, li?: AbiInput | AbiInput[] | Dict<AbiInput>): [ABI_DATA_TYPE[], Array<string | Uint8Array | BN>, ABI_DATA_TYPE[]];
-    abiDecode(name: string, buf?: Uint8Array[], type?: ABI_TYPE): Readable | Readable[] | Dict<Readable>;
+    abiEncode(name: string, li?: AbiInput | AbiInput[] | Record<string, AbiInput>): [ABI_DATA_TYPE[], Array<string | Uint8Array | BN>, ABI_DATA_TYPE[]];
+    abiDecode(name: string, buf?: Uint8Array[], type?: ABI_TYPE): Readable | Readable[] | Record<string, Readable>;
     /**
      * 合约部署的 paylod
      */

@@ -76,7 +76,7 @@ export declare function convert(o: AbiInput, type: ABI_DATA_TYPE): string | Uint
  * 对字节数组取反
  */
 export declare function inverse(arr: Uint8Array): Uint8Array;
-export declare function toSafeInt(x: string | number | BN | ArrayBuffer | Uint8Array): string | number;
+export declare function toSafeInt(x: string | number | BN | ArrayBuffer | Uint8Array | bigint): string | number;
 /**
  * decode binary as utf8 string
  */

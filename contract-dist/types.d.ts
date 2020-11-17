@@ -1,7 +1,7 @@
 import BN = require("../bn");
-export declare type Digital = string | number | BN;
+export declare type Digital = string | number | BN | bigint;
 export declare type Readable = string | number | boolean;
-export declare type AbiInput = string | number | boolean | ArrayBuffer | Uint8Array | BN;
+export declare type AbiInput = string | number | boolean | ArrayBuffer | Uint8Array | BN | bigint;
 export declare type RLPElement = Uint8Array | Uint8Array[];
 export declare type Binary = string | Uint8Array | ArrayBuffer;
 export declare type ABI_TYPE = 'function' | 'event';

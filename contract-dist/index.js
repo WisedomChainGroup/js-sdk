@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BN = exports.Transaction = exports.ABI = exports.getContractAddress = exports.Contract = exports.compileABI = exports.compileContract = exports.ABI_DATA_TYPE = exports.TX_STATUS = exports.rlp = exports.RPC = exports.TransactionBuilder = exports.dig2str = exports.bin2str = exports.str2bin = exports.hex2bin = exports.assertAddress = exports.address2PublicKeyHash = exports.rmd160 = exports.bin2hex = exports.publicKey2Hash = exports.publicKeyHash2Address = exports.privateKey2PublicKey = void 0;
+exports.BN = exports.VirtualMachine = exports.Transaction = exports.ABI = exports.getContractAddress = exports.Contract = exports.compileABI = exports.compileContract = exports.ABI_DATA_TYPE = exports.TX_STATUS = exports.rlp = exports.RPC = exports.TransactionBuilder = exports.dig2str = exports.bin2str = exports.str2bin = exports.hex2bin = exports.assertAddress = exports.address2PublicKeyHash = exports.rmd160 = exports.bin2hex = exports.publicKey2Hash = exports.publicKeyHash2Address = exports.privateKey2PublicKey = void 0;
 var utils_1 = require("./utils");
 Object.defineProperty(exports, "privateKey2PublicKey", { enumerable: true, get: function () { return utils_1.privateKey2PublicKey; } });
 Object.defineProperty(exports, "publicKeyHash2Address", { enumerable: true, get: function () { return utils_1.publicKeyHash2Address; } });
@@ -31,3 +31,5 @@ var BN = require("../bn");
 exports.BN = BN;
 var tx_1 = require("./tx");
 Object.defineProperty(exports, "Transaction", { enumerable: true, get: function () { return tx_1.Transaction; } });
+var vm_1 = require("./vm");
+Object.defineProperty(exports, "VirtualMachine", { enumerable: true, get: function () { return vm_1.VirtualMachine; } });

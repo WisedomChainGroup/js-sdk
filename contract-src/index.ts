@@ -6,4 +6,5 @@ export { TX_STATUS, TransactionResult, Binary, Digital, AbiInput, Event, ABI_DAT
 export { compileContract, compileABI, Contract, getContractAddress, ABI } from './contract'
 import BN = require('../bn')
 export { Transaction } from './tx'
+export { VirtualMachine } from './vm'
 export { BN }

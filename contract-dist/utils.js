@@ -318,6 +318,8 @@ function bytesToF64(buf) {
 }
 exports.bytesToF64 = bytesToF64;
 function convert(o, type) {
+    if (typeof o === 'bigint')
+        o = new BN(o.toString());
     if (o instanceof Uint8Array || o instanceof ArrayBuffer) {
         switch (type) {
             case types_1.ABI_DATA_TYPE.bool:
@@ -499,6 +501,8 @@ function inverse(arr) {
 exports.inverse = inverse;
 function toSafeInt(x) {
     var bn;
+    if (typeof x === 'bigint')
+        x = new BN(x.toString());
     if (typeof x === 'number')
         return x;
     if (typeof x === 'string') {

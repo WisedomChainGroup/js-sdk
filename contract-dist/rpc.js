@@ -341,12 +341,17 @@ var RPC = /** @class */ (function () {
         var _this = this;
         this.nonce++;
         var n = this.nonce;
+        var tm = null;
         var ret = new Promise(function (rs, rj) {
-            setTimeout(function () {
+            tm = setTimeout(function () {
                 rj('websocket rpc timeout');
                 _this.rpcCallbacks.delete(n);
             }, _this.timeout * 1000);
-            _this.rpcCallbacks.set(n, rs);
+            _this.rpcCallbacks.set(n, function (r) {
+                if (tm)
+                    clearTimeout(tm);
+                rs(r);
+            });
         });
         this.tryConnect()
             .then(function () {

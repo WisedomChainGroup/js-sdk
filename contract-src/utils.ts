@@ -345,6 +345,8 @@ export function bytesToF64(buf: Uint8Array | ArrayBuffer): number {
 }
 
 export function convert(o: AbiInput, type: ABI_DATA_TYPE): string | Uint8Array | BN {
+    if(typeof o === 'bigint')
+        o = new BN(o.toString())
     if (o instanceof Uint8Array || o instanceof ArrayBuffer) {
         switch (type) {
             case ABI_DATA_TYPE.bool:
@@ -528,8 +530,10 @@ export function inverse(arr: Uint8Array): Uint8Array {
     return ret
 }
 
-export function toSafeInt(x: string | number | BN | ArrayBuffer | Uint8Array): string | number {
+export function toSafeInt(x: string | number | BN | ArrayBuffer | Uint8Array | bigint): string | number {
     let bn: BN
+    if(typeof x === 'bigint')
+        x = new BN(x.toString())
     if (typeof x === 'number')
         return x
     if (typeof x === 'string') {

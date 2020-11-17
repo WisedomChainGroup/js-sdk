@@ -414,12 +414,17 @@ export class RPC {
     private wsRpc(code: WS_CODES, data: any): Promise<Resp> {
         this.nonce++
         const n = this.nonce
+        let tm = null
         const ret = new Promise((rs, rj) => {
-            setTimeout(() => {
+            tm = setTimeout(() => {
                 rj('websocket rpc timeout')
                 this.rpcCallbacks.delete(n)
             }, this.timeout * 1000)
-            this.rpcCallbacks.set(n, rs)
+            this.rpcCallbacks.set(n, (r) => {
+                if(tm)
+                    clearTimeout(tm)
+                rs(r)    
+            })
         })
         this.tryConnect()
             .then(() => {

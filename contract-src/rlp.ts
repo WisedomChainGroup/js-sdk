@@ -175,7 +175,10 @@ export function encodeString(s: string): Uint8Array {
     return encodeBytes(str2bin(s))
 }
 
-export function encode(o?: string | any[] | number | null | BN | Uint8Array | ArrayBuffer | Encoder | boolean): Uint8Array {
+export function encode(o?: string | any[] | number | null | BN | Uint8Array | ArrayBuffer | Encoder | boolean | bigint): Uint8Array {
+    if(typeof o === 'bigint')
+        o = new BN(o.toString())
+        
     if (o && (typeof (<Encoder>o).getEncoded === 'function')) {
         return (<Encoder>o).getEncoded()
     }

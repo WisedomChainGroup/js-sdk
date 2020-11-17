@@ -1870,12 +1870,17 @@
         __wsRpc(code, data) {
             this.__nonce++
             const n = this.__nonce
+            let tm = null
             const ret = new Promise((rs, rj) => {
-                setTimeout(() => {
+                tm = setTimeout(() => {
                     rj('websocket rpc timeout')
                     this.__rpcCallbacks.delete(n)
                 }, this.timeout * 1000)
-                this.__rpcCallbacks.set(n, rs)
+                this.__rpcCallbacks.set(n, (r) => {
+                    if(tm)
+                        clearTimeout(tm)
+                    rs(r)    
+                })
             })
             this.__tryConnect()
                 .then(() => {

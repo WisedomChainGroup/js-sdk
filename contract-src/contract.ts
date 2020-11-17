@@ -1,5 +1,5 @@
-import {ABI_DATA_TYPE, ABI_TYPE, AbiInput, Binary, MAX_U256, MAX_U64, ONE, Readable} from "./types"
-import {OutputStream} from 'assemblyscript/cli/asc'
+import { ABI_DATA_TYPE, ABI_TYPE, AbiInput, Binary, MAX_U256, MAX_U64, ONE, Readable } from "./types"
+import { OutputStream } from 'assemblyscript/cli/asc'
 
 import {
     assert,
@@ -19,7 +19,17 @@ import {
 } from "./utils"
 import BN = require("../bn");
 import rlp = require('./rlp');
-import Dict = NodeJS.Dict;
+
+/**
+ * 合约部署的 paylod
+ */
+export function abiToBinary(abi: ABI[]): any[] {
+    const ret = []
+    for (let a of abi) {
+        ret.push([a.name, a.type === 'function' ? 0 : 1, a.inputs.map(x => ABI_DATA_TYPE[x.type]), a.outputs.map(x => ABI_DATA_TYPE[x.type])])
+    }
+    return ret
+}
 
 /**
  * 计算合约地址
@@ -41,7 +51,7 @@ export async function compileContract(ascPath?: string, src?: string, opts?: { d
         return new Promise((rs, rj) => {
             child_process.exec(
                 cmd,
-                {encoding: 'buffer'},
+                { encoding: 'buffer' },
                 (err, stdout, stderr) => {
                     if (err) {
                         // err.code 是进程退出时的 exit code，非 0 都被认为错误
@@ -58,7 +68,7 @@ export async function compileContract(ascPath?: string, src?: string, opts?: { d
     if (typeof src !== 'string') {
         src = ascPath
     }
-    if(typeof src !== 'string')
+    if (typeof src !== 'string')
         throw new Error('invalid source file ' + src)
     const arr = [
         src,
@@ -229,7 +239,7 @@ export class ABI {
         )
     }
 
-    toObj(arr: AbiInput[], input: boolean): Dict<AbiInput> {
+    toObj(arr: AbiInput[], input: boolean): Record<string, AbiInput> {
         const p = input ? this.inputs : this.outputs
         const o = {}
         for (let i = 0; i < p.length; i++) {
@@ -238,7 +248,7 @@ export class ABI {
         return o
     }
 
-    toArr(obj: Dict<AbiInput>, input: boolean): AbiInput[] {
+    toArr(obj: Record<string, AbiInput>, input: boolean): AbiInput[] {
         const p = input ? this.inputs : this.outputs
         const arr = []
         for (let i = 0; i < p.length; i++) {
@@ -248,16 +258,16 @@ export class ABI {
     }
 }
 
-export function normalizeParams(params?: AbiInput | AbiInput[] | Dict<AbiInput>): AbiInput[] | Dict<AbiInput> {
+export function normalizeParams(params?: AbiInput | AbiInput[] | Record<string, AbiInput>): AbiInput[] | Record<string, AbiInput> {
     if (params === null || params === undefined)
         return []
-    if (typeof params === 'string' || typeof params === 'boolean' || typeof params === 'number' || params instanceof ArrayBuffer || params instanceof Uint8Array || params instanceof BN)
+    if (typeof params === 'bigint' || typeof params === 'string' || typeof params === 'boolean' || typeof params === 'number' || params instanceof ArrayBuffer || params instanceof Uint8Array || params instanceof BN)
         return [params]
     return params
 }
 
 
-function abiDecode(outputs: TypeDef[], buf?: Uint8Array[]): Readable[] | Dict<Readable> {
+function abiDecode(outputs: TypeDef[], buf?: Uint8Array[]): Readable[] | Record<string, Readable> {
     buf = buf || []
     const len = buf.length
     if (len === 0)
@@ -359,12 +369,12 @@ export class Contract {
             this.binary = hex2bin(binary)
     }
 
-    abiEncode(name: string, li?: AbiInput | AbiInput[] | Dict<AbiInput>): [ABI_DATA_TYPE[], Array<string | Uint8Array | BN>, ABI_DATA_TYPE[]] {
+    abiEncode(name: string, li?: AbiInput | AbiInput[] | Record<string, AbiInput>): [ABI_DATA_TYPE[], Array<string | Uint8Array | BN>, ABI_DATA_TYPE[]] {
         const func = this.getABI(name, 'function')
         let retType = func.outputs && func.outputs[0] && func.outputs[0].type
         const retTypes = retType ? [ABI_DATA_TYPE[retType]] : []
 
-        if (typeof li === 'string' || typeof li === 'number' || li instanceof BN || li instanceof ArrayBuffer || li instanceof Uint8Array || typeof li === 'boolean')
+        if (typeof li === 'string' || typeof li === 'number' || li instanceof BN || li instanceof ArrayBuffer || li instanceof Uint8Array || typeof li === 'boolean' || typeof li === 'bigint')
             return this.abiEncode(name, [li])
 
         if (li === undefined || li === null)
@@ -398,7 +408,7 @@ export class Contract {
     }
 
 
-    abiDecode(name: string, buf?: Uint8Array[], type?: ABI_TYPE): Readable | Readable[] | Dict<Readable> {
+    abiDecode(name: string, buf?: Uint8Array[], type?: ABI_TYPE): Readable | Readable[] | Record<string, Readable> {
         type = type || 'function'
         buf = buf || []
         if (buf.length === 0)
@@ -416,11 +426,7 @@ export class Contract {
      * 合约部署的 paylod
      */
     abiToBinary(): any[] {
-        const ret = []
-        for (let a of this.abi) {
-            ret.push([a.name, a.type === 'function' ? 0 : 1, a.inputs.map(x => ABI_DATA_TYPE[x.type]), a.outputs.map(x => ABI_DATA_TYPE[x.type])])
-        }
-        return ret
+        return abiToBinary(this.abi)
     }
 
     getABI(name: string, type: ABI_TYPE): ABI {

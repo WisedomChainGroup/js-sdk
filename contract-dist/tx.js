@@ -88,7 +88,7 @@ var Transaction = /** @class */ (function () {
         var cnv = function (x) {
             if (x instanceof ArrayBuffer || x instanceof Uint8Array)
                 return utils_2.bin2hex(x);
-            if (x instanceof BN)
+            if (x instanceof BN || typeof x === 'bigint')
                 return utils_1.toSafeInt(x);
             return x;
         };

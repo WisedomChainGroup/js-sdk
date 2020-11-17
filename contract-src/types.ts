@@ -1,7 +1,7 @@
 import BN = require("../bn")
-export type Digital = string | number | BN
+export type Digital = string | number | BN | bigint
 export type Readable = string | number | boolean
-export type AbiInput = string | number | boolean | ArrayBuffer | Uint8Array | BN
+export type AbiInput = string | number | boolean | ArrayBuffer | Uint8Array | BN | bigint
 export type RLPElement = Uint8Array | Uint8Array[]
 
 export type Binary = string | Uint8Array | ArrayBuffer

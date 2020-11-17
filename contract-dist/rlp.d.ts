@@ -16,7 +16,7 @@ export declare function numberToByteArray(u: number): Uint8Array;
  */
 export declare function encodeElements(elements: Uint8Array[]): Uint8Array;
 export declare function encodeString(s: string): Uint8Array;
-export declare function encode(o?: string | any[] | number | null | BN | Uint8Array | ArrayBuffer | Encoder | boolean): Uint8Array;
+export declare function encode(o?: string | any[] | number | null | BN | Uint8Array | ArrayBuffer | Encoder | boolean | bigint): Uint8Array;
 export declare function decode(e: Uint8Array | ArrayBuffer): RLPElement | RLPElement[];
 export declare function decodeElements(enc: Uint8Array | ArrayBuffer): Uint8Array[];
 export declare class RLPList {

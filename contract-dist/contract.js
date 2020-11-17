@@ -36,11 +36,23 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Contract = exports.normalizeParams = exports.ABI = exports.TypeDef = exports.compileABI = exports.compileContract = exports.getContractAddress = void 0;
+exports.Contract = exports.normalizeParams = exports.ABI = exports.TypeDef = exports.compileABI = exports.compileContract = exports.getContractAddress = exports.abiToBinary = void 0;
 var types_1 = require("./types");
 var utils_1 = require("./utils");
 var BN = require("../bn");
 var rlp = require("./rlp");
+/**
+ * 合约部署的 paylod
+ */
+function abiToBinary(abi) {
+    var ret = [];
+    for (var _i = 0, abi_1 = abi; _i < abi_1.length; _i++) {
+        var a = abi_1[_i];
+        ret.push([a.name, a.type === 'function' ? 0 : 1, a.inputs.map(function (x) { return types_1.ABI_DATA_TYPE[x.type]; }), a.outputs.map(function (x) { return types_1.ABI_DATA_TYPE[x.type]; })]);
+    }
+    return ret;
+}
+exports.abiToBinary = abiToBinary;
 /**
  * 计算合约地址
  */
@@ -240,7 +252,7 @@ exports.ABI = ABI;
 function normalizeParams(params) {
     if (params === null || params === undefined)
         return [];
-    if (typeof params === 'string' || typeof params === 'boolean' || typeof params === 'number' || params instanceof ArrayBuffer || params instanceof Uint8Array || params instanceof BN)
+    if (typeof params === 'bigint' || typeof params === 'string' || typeof params === 'boolean' || typeof params === 'number' || params instanceof ArrayBuffer || params instanceof Uint8Array || params instanceof BN)
         return [params];
     return params;
 }
@@ -337,7 +349,7 @@ var Contract = /** @class */ (function () {
         var func = this.getABI(name, 'function');
         var retType = func.outputs && func.outputs[0] && func.outputs[0].type;
         var retTypes = retType ? [types_1.ABI_DATA_TYPE[retType]] : [];
-        if (typeof li === 'string' || typeof li === 'number' || li instanceof BN || li instanceof ArrayBuffer || li instanceof Uint8Array || typeof li === 'boolean')
+        if (typeof li === 'string' || typeof li === 'number' || li instanceof BN || li instanceof ArrayBuffer || li instanceof Uint8Array || typeof li === 'boolean' || typeof li === 'bigint')
             return this.abiEncode(name, [li]);
         if (li === undefined || li === null)
             return [[], [], retTypes];
@@ -380,12 +392,7 @@ var Contract = /** @class */ (function () {
      * 合约部署的 paylod
      */
     Contract.prototype.abiToBinary = function () {
-        var ret = [];
-        for (var _i = 0, _a = this.abi; _i < _a.length; _i++) {
-            var a = _a[_i];
-            ret.push([a.name, a.type === 'function' ? 0 : 1, a.inputs.map(function (x) { return types_1.ABI_DATA_TYPE[x.type]; }), a.outputs.map(function (x) { return types_1.ABI_DATA_TYPE[x.type]; })]);
-        }
-        return ret;
+        return abiToBinary(this.abi);
     };
     Contract.prototype.getABI = function (name, type) {
         var funcs = this.abi.filter(function (x) { return x.type === type && x.name === name; });
