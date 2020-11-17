@@ -79,6 +79,12 @@ export declare class Reflect extends AbstractHost {
 export declare class Transfer extends AbstractHost {
     ctx: CallContext;
     constructor(world: VirtualMachine, ctx: CallContext);
-    execute(...args: (number | bigint)[]): number | bigint | void;
+    execute(...args: bigint[]): void;
     name(): string;
+}
+export declare class Uint256Host extends AbstractHost {
+    execute(...args: bigint[]): bigint;
+    name(): string;
+    getX(args: bigint[]): BN;
+    getY(args: bigint[]): BN;
 }

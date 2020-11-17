@@ -83,3 +83,4 @@ export declare function toSafeInt(x: string | number | BN | ArrayBuffer | Uint8A
 export declare function bin2str(_bin: Binary): string;
 export declare function uuidv4(): string;
 export declare function bin2hex(s: Binary): string;
+export declare function encodeBE(i: Digital): Uint8Array;

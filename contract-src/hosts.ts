@@ -1,8 +1,8 @@
 import { isZero, VirtualMachine } from './vm'
-import { concatBytes, dig2str, digest, padPrefix, trimLeadingZeros } from "./utils"
+import { concatBytes, dig2str, digest, encodeBE, padPrefix, trimLeadingZeros } from "./utils"
 import { bin2hex, bin2str, hex2bin, str2bin } from './utils'
 import BN = require('../bn')
-import { ZERO } from './types'
+import { MAX_U256, ZERO } from './types'
 import { abiToBinary, Contract } from './contract'
 import * as rlp from './rlp'
 
@@ -341,7 +341,7 @@ export class ContextHost extends AbstractHost {
                 break
             }
             case ContextType.TX_AMOUNT: {
-                data = trimLeadingZeros(this.ctx.amount.toArrayLike(Uint8Array, 'be'))
+                data = encodeBE(this.ctx.amount).buffer
                 ret = BigInt(data.byteLength)
                 break
             }
@@ -379,7 +379,7 @@ export class ContextHost extends AbstractHost {
             case ContextType.ACCOUNT_BALANCE: {
                 let addr = bin2hex(this.loadN(args[1], args[2]))
                 let b = this.world.balanceMap.get(bin2hex(addr)) || ZERO
-                data = trimLeadingZeros(b.toArrayLike(Uint8Array, 'be'))
+                data = encodeBE(b).buffer
                 offset = args[3]
                 put = !isZero(args[4])
                 ret = BigInt(data.byteLength)
@@ -533,12 +533,100 @@ export class Transfer extends AbstractHost{
         super(world)
         this.ctx = ctx
     }
-        
-    execute(...args: (number | bigint)[]): number | bigint | void {
-        throw new Error('Method not implemented.')
+
+    execute(...args: bigint[]): void {
+        if(!isZero(args[0]))
+            throw new Error('transfer: unexpected')
+        let amount = new BN(new Uint8Array(this.loadN(args[3], args[4])), 10, 'be')
+        let to = bin2hex(this.loadN(args[1], args[2]))
+        let contractAddress = bin2hex(this.ctx.contractAddress)
+        let contractBalance = this.world.balanceMap.get(contractAddress) || ZERO
+        let toBalance = this.world.balanceMap.get(to) || ZERO
+        if(contractBalance.cmp(amount) < 0)
+            throw new Error(`transfer failed: balance not enough for account ${contractAddress}`)
+
+        contractBalance = contractBalance.sub(amount)
+        toBalance = toBalance.add(amount)
+        this.world.balanceMap.set(contractAddress, contractBalance)
+        this.world.balanceMap.set(to, toBalance)
     }
     name(): string {
-        throw new Error('Method not implemented.')
+        return '_transfer'
     }
     
+}
+
+enum Uint256Type {
+    PARSE,
+    TOSTRING,
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    MOD
+}
+
+function mod(n: BN): BN{
+    while(n.isNeg())
+        n = n.add(MAX_U256)
+    return n.mod(MAX_U256)
+}
+
+export class Uint256Host extends AbstractHost{
+    execute(...args: bigint[]): bigint {
+        const t = Number(args[0])
+        let data: ArrayBuffer
+        let put = !isZero(args[6])
+        let ret = BigInt(0)
+        let offset = args[5]
+
+        switch(t){
+            case Uint256Type.ADD: {
+                data = encodeBE(mod(this.getX(args).add(this.getY(args))))
+                ret = BigInt(data.byteLength)
+                break
+            }
+            case Uint256Type.SUB: {
+                data = encodeBE(mod(this.getX(args).sub(this.getY(args))))
+                ret = BigInt(data.byteLength)
+                break
+            }
+            case Uint256Type.MUL: {
+                data = encodeBE(mod(this.getX(args).mul(this.getY(args))))
+                ret = BigInt(data.byteLength)
+                break
+            }
+            case Uint256Type.DIV: {
+                data = encodeBE(mod(this.getX(args).sub(this.getY(args))))
+                ret = BigInt(data.byteLength)
+                break
+            }
+            case Uint256Type.MOD: {
+                data = encodeBE(mod(this.getX(args).mod(this.getY(args))))
+                ret = BigInt(data.byteLength)
+                break
+            }
+            case Uint256Type.PARSE: {
+                let str = this.loadUTF8(args[1], args[2])
+                let radix = Number(args[3])
+                data = encodeBE(mod(new BN(str, radix)))
+                ret = BigInt(data.byteLength)
+                break
+            }
+        }
+        if(put)
+            this.put(offset, data)
+        return ret
+    }
+    name(): string {
+        return '_u256'
+    }
+
+    getX(args: bigint[]): BN{
+        return new BN(new Uint8Array(this.loadN(args[1], args[2])), 10, 'be')
+    }
+
+    getY(args: bigint[]): BN{
+        return new BN(new Uint8Array(this.loadN(args[3], args[4])), 10, 'be')
+    }
 }
