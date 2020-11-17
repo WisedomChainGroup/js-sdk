@@ -1,8 +1,6 @@
-/// <reference types="node" />
 import { AbiInput, Binary, Readable, RLPElement, TransactionResult, TX_STATUS, WS_CODES } from "./types";
 import { Contract } from "./contract";
 import { Transaction } from "./tx";
-import Dict = NodeJS.Dict;
 export interface Resp {
     code: WS_CODES;
     nonce: number;
@@ -36,13 +34,13 @@ export declare class RPC {
      * 监听合约事件
      */
     private __listen;
-    listen(contract: Contract, event: string, func?: (e: Dict<Readable>) => void): Promise<Dict<Readable>>;
+    listen(contract: Contract, event: string, func?: (e: Record<string, Readable>) => void): Promise<Record<string, Readable>>;
     /**
      * 移除监听器
      * @param {number} id 监听器的 id
      */
     removeListener(id: number): void;
-    listenOnce(contract: Contract, event: string, func?: (e: Dict<Readable>) => void): Promise<Dict<Readable>>;
+    listenOnce(contract: Contract, event: string, func?: (e: Record<string, Readable>) => void): Promise<Record<string, Readable>>;
     /**
      * 添加事务观察者，如果事务最终被确认或者异常终止，观察者会被移除
      */
@@ -50,7 +48,7 @@ export declare class RPC {
     /**
      * 查看合约方法
      */
-    viewContract(contract: Contract, method: string, parameters?: AbiInput | AbiInput[] | Dict<AbiInput>): Promise<Readable>;
+    viewContract(contract: Contract, method: string, parameters?: AbiInput | AbiInput[] | Record<string, AbiInput>): Promise<Readable>;
     /**
      * 通过 websocket 发送事务
      * @param tx 事务

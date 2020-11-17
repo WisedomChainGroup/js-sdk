@@ -12,7 +12,7 @@ var TransactionBuilder = /** @class */ (function () {
     function TransactionBuilder(version, sk, gasLimit, gasPrice, nonce) {
         this.version = utils_1.dig2str(version || '1');
         this.sk = utils_2.bin2hex(sk || '');
-        this.gasPrice = utils_1.dig2str(gasPrice || 200000);
+        this.gasPrice = utils_1.dig2str(gasPrice || 0);
         this.nonce = utils_1.dig2str(nonce || 0);
         this.gasLimit = utils_1.dig2str(gasLimit || 0);
     }

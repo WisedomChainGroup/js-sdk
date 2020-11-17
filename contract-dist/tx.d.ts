@@ -1,4 +1,3 @@
-/// <reference types="node" />
 /**
  * 事务
  */
@@ -6,7 +5,6 @@ import { AbiInput, Binary, Digital, Readable } from "./types";
 import BN = require("../bn");
 import { Encoder } from "./rlp";
 import { ABI } from "./contract";
-import Dict = NodeJS.Dict;
 export declare class Transaction implements Encoder {
     version: string;
     type: string;
@@ -18,7 +16,7 @@ export declare class Transaction implements Encoder {
     to: string;
     signature: string;
     __abi?: ABI[];
-    __inputs?: Readable[] | Dict<Readable>;
+    __inputs?: Readable[] | Record<string, Readable>;
     /**
      * constructor of transaction
      */
@@ -41,7 +39,7 @@ export declare class Transaction implements Encoder {
      * 签名
      */
     sign(_sk: Binary): void;
-    __setInputs(__inputs: AbiInput[] | Dict<AbiInput>): void;
+    __setInputs(__inputs: AbiInput[] | Record<string, AbiInput>): void;
     getMethod(): string;
     isDeployOrCall(): boolean;
 }

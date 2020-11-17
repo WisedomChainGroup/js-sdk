@@ -5,7 +5,6 @@ import {Contract, normalizeParams} from "./contract"
 import {Transaction} from "./tx"
 import rlp = require('./rlp');
 import BN = require("../bn");
-import Dict = NodeJS.Dict;
 
 export interface Resp {
     code: WS_CODES
@@ -199,7 +198,7 @@ export class RPC {
     /**
      * 监听合约事件
      */
-    private __listen(contract: Contract, event: string, func: (e: Dict<Readable>) => void) {
+    private __listen(contract: Contract, event: string, func: (e: Record<string, Readable>) => void) {
         const addr = normalizeAddress(contract.address)
         const addrHex = bin2hex(addr)
         this.wsRpc(WS_CODES.EVENT_SUBSCRIBE, addr)
@@ -209,7 +208,7 @@ export class RPC {
 
         const fn: (e: EventResp) => void = (e) => {
             const abiDecoded = contract.abiDecode(event, <Uint8Array[]>e.fields, 'event')
-            func(<Dict<Readable>>abiDecoded)
+            func(<Record<string, Readable>>abiDecoded)
         }
 
         if (!this.eventHandlers.has(key))
@@ -220,7 +219,7 @@ export class RPC {
         return id
     }
 
-    listen(contract: Contract, event: string, func?: (e: Dict<Readable>) => void): Promise<Dict<Readable>> {
+    listen(contract: Contract, event: string, func?: (e: Record<string, Readable>) => void): Promise<Record<string, Readable>> {
         if (func === undefined) {
             return new Promise((rs, rj) => {
                 this.__listen(contract, event, rs)
@@ -254,7 +253,7 @@ export class RPC {
         }
     }
 
-    listenOnce(contract: Contract, event: string, func?: (e: Dict<Readable>) => void): Promise<Dict<Readable>> {
+    listenOnce(contract: Contract, event: string, func?: (e: Record<string, Readable>) => void): Promise<Record<string, Readable>> {
         const id = this.cid + 1
         if (func === undefined)
             return this.listen(contract, event).then((r) => {
@@ -297,7 +296,7 @@ export class RPC {
     /**
      * 查看合约方法
      */
-    viewContract(contract: Contract, method: string, parameters?: AbiInput | AbiInput[] | Dict<AbiInput>): Promise<Readable> {
+    viewContract(contract: Contract, method: string, parameters?: AbiInput | AbiInput[] | Record<string, AbiInput>): Promise<Readable> {
         if (!(contract instanceof Contract))
             throw new Error('create a instanceof Contract by new tool.Contract(addr, abi)')
 
@@ -384,7 +383,7 @@ export class RPC {
                         for (let e of resp.events) {
                             const name = bin2str(e[0])
                             const decoded = (new Contract('', tx.__abi)).abiDecode(name, e[1], 'event')
-                            events.push({ name: name, data: <Dict<Readable>>decoded })
+                            events.push({ name: name, data: <Record<string, Readable>>decoded })
                         }
                         ret.events = events
                     }

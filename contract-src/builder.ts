@@ -2,7 +2,6 @@ import { AbiInput, Binary, constants, Digital, ONE, ABI_DATA_TYPE } from "./type
 import { dig2str, assert, privateKey2PublicKey, normalizeAddress, isBin, hex2bin } from "./utils"
 import { bin2hex, convert} from "./utils"
 import BN = require("../bn")
-import Dict = NodeJS.Dict
 import { Contract, normalizeParams } from "./contract"
 import { Transaction } from "./tx"
 import rlp = require('./rlp')
@@ -17,7 +16,7 @@ export class TransactionBuilder {
     constructor(version?: Digital, sk?: Binary, gasLimit?: Digital, gasPrice?: Digital, nonce?: Digital) {
         this.version = dig2str(version || '1')
         this.sk = bin2hex(sk || '')
-        this.gasPrice = dig2str(gasPrice || 200000)
+        this.gasPrice = dig2str(gasPrice || 0)
         this.nonce = dig2str(nonce || 0)
         this.gasLimit = dig2str(gasLimit || 0)
     }
@@ -31,7 +30,7 @@ export class TransactionBuilder {
     /**
      * 构造部署合约的事务
      */
-    buildDeploy(contract: Contract, _parameters?: AbiInput | AbiInput[] | Dict<AbiInput>, amount?: Digital): Transaction {
+    buildDeploy(contract: Contract, _parameters?: AbiInput | AbiInput[] | Record<string, AbiInput>, amount?: Digital): Transaction {
         assert(contract instanceof Contract, 'create a instanceof Contract by new tool.Contract(addr, abi)')
         assert(isBin(contract.binary), 'contract binary should be uint8 array')
         assert(contract.abi, 'missing contract abi')
@@ -59,7 +58,7 @@ export class TransactionBuilder {
     /**
      * 构造合约调用事务
      */
-    buildContractCall(contract: Contract, method: string, _parameters?: AbiInput | AbiInput[] | Dict<AbiInput>, amount?: Digital): Transaction {
+    buildContractCall(contract: Contract, method: string, _parameters?: AbiInput | AbiInput[] | Record<string, AbiInput>, amount?: Digital): Transaction {
         assert(contract instanceof Contract, 'create a instanceof Contract by new tool.Contract(addr, abi)')
         assert(contract.abi, 'missing contract abi')
         assert(contract.address, 'missing contract address')

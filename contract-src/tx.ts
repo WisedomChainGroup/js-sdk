@@ -9,7 +9,6 @@ import rlp = require('./rlp')
 import nacl = require('../nacl.min.js')
 import {Encoder} from "./rlp"
 import {ABI, Contract} from "./contract"
-import Dict = NodeJS.Dict
 
 export class Transaction implements Encoder {
     version: string
@@ -22,7 +21,7 @@ export class Transaction implements Encoder {
     to: string
     signature: string
     __abi?: ABI[]
-    __inputs?: Readable[] | Dict<Readable>
+    __inputs?: Readable[] | Record<string, Readable>
 
     /**
      * constructor of transaction
@@ -105,7 +104,7 @@ export class Transaction implements Encoder {
         this.signature = bin2hex(nacl.sign(this.getRaw(true), sk).slice(0, 64))
     }
 
-    __setInputs(__inputs: AbiInput[] | Dict<AbiInput>): void {
+    __setInputs(__inputs: AbiInput[] | Record<string, AbiInput>): void {
         const cnv: (x: AbiInput) => Readable = (x) => {
             if (x instanceof ArrayBuffer || x instanceof Uint8Array)
                 return bin2hex(x)
@@ -125,7 +124,7 @@ export class Transaction implements Encoder {
             const c = new Contract('', this.__abi)
             const a = c.getABI(this.getMethod(), 'function')
             if (a.inputsObj()) {
-                this.__inputs = <Dict<Readable>>a.toObj(this.__inputs, true)
+                this.__inputs = <Record<string, Readable>>a.toObj(this.__inputs, true)
             }
         }
     }

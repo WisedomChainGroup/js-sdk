@@ -1,6 +1,4 @@
-/// <reference types="node" />
 import { AbiInput, Binary, Digital } from "./types";
-import Dict = NodeJS.Dict;
 import { Contract } from "./contract";
 import { Transaction } from "./tx";
 export declare class TransactionBuilder {
@@ -14,11 +12,11 @@ export declare class TransactionBuilder {
     /**
      * 构造部署合约的事务
      */
-    buildDeploy(contract: Contract, _parameters?: AbiInput | AbiInput[] | Dict<AbiInput>, amount?: Digital): Transaction;
+    buildDeploy(contract: Contract, _parameters?: AbiInput | AbiInput[] | Record<string, AbiInput>, amount?: Digital): Transaction;
     /**
      * 构造合约调用事务
      */
-    buildContractCall(contract: Contract, method: string, _parameters?: AbiInput | AbiInput[] | Dict<AbiInput>, amount?: Digital): Transaction;
+    buildContractCall(contract: Contract, method: string, _parameters?: AbiInput | AbiInput[] | Record<string, AbiInput>, amount?: Digital): Transaction;
     /**
      * 创建事务
      */

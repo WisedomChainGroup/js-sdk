@@ -2,7 +2,7 @@ const path = require('path')
 
 module.exports = {
     // mode: 'development',
-    // devtool: 'inline-source-map',
+    devtool: 'source-map',
     entry: path.join(__dirname, "contract-src/index.ts"),
     output: {
         path: path.join(__dirname, "contract-dist"),

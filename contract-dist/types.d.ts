@@ -1,6 +1,4 @@
-/// <reference types="node" />
 import BN = require("../bn");
-import Dict = NodeJS.Dict;
 export declare type Digital = string | number | BN;
 export declare type Readable = string | number | boolean;
 export declare type AbiInput = string | number | boolean | ArrayBuffer | Uint8Array | BN;
@@ -12,7 +10,7 @@ export declare type ABI_TYPE = 'function' | 'event';
  */
 export interface Event {
     name: string;
-    data: Dict<Readable>;
+    data: Record<string, Readable>;
 }
 export interface TransactionResult {
     blockHeight: number | string;
