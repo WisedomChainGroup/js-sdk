@@ -1,4 +1,4 @@
-import { normalizeAddress, bin2hex, digest, bin2str, convert, dig2BN, address2PublicKeyHash, hex2bin, encodeBE, encodeUint32, toSafeInt, bytesToF64 } from "./utils"
+import { normalizeAddress, bin2hex, digest, bin2str, convert, dig2BN, address2PublicKeyHash, hex2bin, encodeBE, encodeUint32, toSafeInt, bytesToF64, publicKeyHash2Address } from "./utils"
 import { ABI, getContractAddress, normalizeParams } from "./contract"
 import { TransactionResult, Binary, AbiInput, Digital, ABI_DATA_TYPE, ZERO, Readable } from "./types"
 import { Abort, CallContext, ContextHost, DBHost, EventHost, HashHost, Log, RLPHost, Util, Reflect, Transfer, Uint256Host, AbstractHost } from './hosts'
@@ -153,6 +153,9 @@ export class VirtualMachine {
                 if(type === ABI_DATA_TYPE.f64){
                     return bytesToF64(<Uint8Array> converted)
                 }
+                if(type == ABI_DATA_TYPE.bool){
+                    return (<BN>converted).toNumber()
+                }
                 let l = <BN>(converted instanceof Uint8Array ? new BN(converted, 10, 'be') : converted)
                 return BigInt(l.toString(10))
             }
@@ -290,19 +293,30 @@ export class VirtualMachine {
 
     extractRet(ins: VMInstance, offset: number | bigint, type: ABI_DATA_TYPE): Readable {
         let ret = this.extractRetInternal(ins, offset, type)
-        if (ret instanceof ArrayBuffer)
-            return bin2hex(ret)
-        return ret
+        if (!(ret instanceof ArrayBuffer)){
+            return ret
+        }
+        switch (type){
+            case ABI_DATA_TYPE.bytes:
+                return bin2hex(ret)
+            case ABI_DATA_TYPE.address:
+                return publicKeyHash2Address(ret)    
+            case ABI_DATA_TYPE.u256:
+                return toSafeInt(ret) 
+            default:
+                throw new Error('unexpected')
+        }    
     }
 
     extractRetInternal(ins: VMInstance, offset: number | bigint, type: ABI_DATA_TYPE): boolean | number | string | ArrayBuffer {
         let view = new MemoryView(ins.exports.memory)
         switch (type) {
             case ABI_DATA_TYPE.bool:
-                return Number(type) !== 0
+                return Number(offset) !== 0
             case ABI_DATA_TYPE.i64:
                 return toSafeInt(offset)
             case ABI_DATA_TYPE.u64:{
+                // 即使webassembly 返回类型是 uint, bigint 也会出现小于 0 的情况，需要自行转换
                 if(offset < 0){
                     let buf = new ArrayBuffer(8)
                     new DataView(buf).setBigInt64(0, BigInt(offset))
