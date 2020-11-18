@@ -17,8 +17,8 @@ import {
     str2bin,
     toSafeInt
 } from "./utils"
-import BN = require("../bn");
-import rlp = require('./rlp');
+import BN = require("../bn")
+import rlp = require('./rlp')
 
 /**
  * 合约部署的 paylod

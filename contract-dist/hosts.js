@@ -107,7 +107,7 @@ var Util = /** @class */ (function (_super) {
             case UtilType.BYTES_TO_U64: {
                 var a = new Uint8Array(this.view.loadN(args[1], args[2]));
                 var b = utils_1.padPrefix(a, 0, 8);
-                ret = new DataView(b).getBigUint64(0, false);
+                ret = new DataView(b.buffer).getBigUint64(0, false);
                 break;
             }
             case UtilType.U64_TO_BYTES: {
@@ -363,6 +363,11 @@ var ContextHost = /** @class */ (function (_super) {
                 ret = BigInt(data.byteLength);
                 break;
             }
+            case ContextType.MSG_AMOUNT: {
+                data = utils_1.encodeBE(this.ctx.amount).buffer;
+                ret = BigInt(data.byteLength);
+                break;
+            }
             case ContextType.CONTRACT_CODE: {
                 var addr = utils_2.bin2hex(this.view.loadN(args[1], args[2]));
                 var code = this.world.contractCode.get(addr);
@@ -445,7 +450,8 @@ var RLPHost = /** @class */ (function (_super) {
             }
             case RLPType.RLP_LIST_LEN: {
                 put = false;
-                ret = BigInt(this.list.length());
+                ret = BigInt(this.list.elements.length);
+                break;
             }
             case RLPType.RLP_LIST_GET: {
                 data = this.list.raw(Number(args[1]));
@@ -511,16 +517,9 @@ var Transfer = /** @class */ (function (_super) {
         if (!vm_1.isZero(args[0]))
             throw new Error('transfer: unexpected');
         var amount = new BN(new Uint8Array(this.view.loadN(args[3], args[4])), 10, 'be');
-        var to = utils_2.bin2hex(this.view.loadN(args[1], args[2]));
-        var contractAddress = utils_2.bin2hex(this.ctx.contractAddress);
-        var contractBalance = this.world.balanceMap.get(contractAddress) || types_1.ZERO;
-        var toBalance = this.world.balanceMap.get(to) || types_1.ZERO;
-        if (contractBalance.cmp(amount) < 0)
-            throw new Error("transfer failed: balance not enough for account " + contractAddress);
-        contractBalance = contractBalance.sub(amount);
-        toBalance = toBalance.add(amount);
-        this.world.balanceMap.set(contractAddress, contractBalance);
-        this.world.balanceMap.set(to, toBalance);
+        var to = this.view.loadN(args[1], args[2]);
+        this.world.subBalance(this.ctx.contractAddress, amount);
+        this.world.addBalance(to, amount);
     };
     Transfer.prototype.name = function () {
         return '_transfer';
@@ -584,6 +583,11 @@ var Uint256Host = /** @class */ (function (_super) {
                 var str = this.view.loadUTF8(args[1], args[2]);
                 var radix = Number(args[3]);
                 data = utils_1.encodeBE(mod(new BN(str, radix)));
+                ret = BigInt(data.byteLength);
+                break;
+            }
+            case Uint256Type.TOSTRING: {
+                data = utils_2.str2bin(this.getX(args).toString(Number(args[3]))).buffer;
                 ret = BigInt(data.byteLength);
                 break;
             }

@@ -183,43 +183,58 @@ var VirtualMachine = /** @class */ (function () {
         this.hash = utils_1.digest(rlp.encode(this.height)).buffer;
         this.now = Math.floor((new Date()).valueOf() / 1000);
     };
-    // 合约调用
-    VirtualMachine.prototype.call = function (sender, method, parameters, amount) {
-        return __awaiter(this, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                return [2 /*return*/, null];
-            });
-        });
+    VirtualMachine.prototype.addBalance = function (addr, amount) {
+        var hex = utils_1.bin2hex(utils_1.normalizeAddress(addr));
+        var balance = this.balanceMap.get(hex) || types_1.ZERO;
+        balance = balance.add(utils_1.dig2BN(amount || types_1.ZERO));
+        this.balanceMap.set(hex, balance);
     };
-    // 合约部署
-    VirtualMachine.prototype.deploy = function (sender, wasmFile, parameters, amount) {
+    VirtualMachine.prototype.subBalance = function (addr, amount) {
+        var hex = utils_1.bin2hex(utils_1.normalizeAddress(addr));
+        var balance = this.balanceMap.get(hex) || types_1.ZERO;
+        var a = utils_1.dig2BN(amount || types_1.ZERO);
+        if (balance.cmp(a) < 0)
+            throw new Error("the balance of " + hex + " is not enough");
+        balance = balance.sub(a);
+        this.balanceMap.set(hex, balance);
+    };
+    VirtualMachine.prototype.increaseNonce = function (sender) {
+        var senderHex = utils_1.bin2hex(utils_1.normalizeAddress(sender));
+        var n = (this.nonceMap.get(senderHex) || 0) + 1;
+        this.nonceMap.set(senderHex, n);
+        return n;
+    };
+    VirtualMachine.prototype.call = function (sender, addr, method, params, amount) {
+        var origin = utils_1.normalizeAddress(sender).buffer;
+        var n = this.increaseNonce(sender);
+        return this.callInternal(method, {
+            type: null,
+            sender: origin,
+            to: utils_1.normalizeAddress(addr).buffer,
+            amount: utils_1.dig2BN(amount || types_1.ZERO),
+            nonce: n,
+            origin: origin,
+            txHash: utils_1.digest(rlp.encode([utils_1.normalizeAddress(sender), n])).buffer,
+            contractAddress: utils_1.normalizeAddress(addr).buffer,
+            readonly: false
+        }, params);
+    };
+    VirtualMachine.prototype.callInternal = function (method, ctx, params) {
         return __awaiter(this, void 0, void 0, function () {
-            var senderAddress, n, txHash, contractAddress, abi, a, ctx, mem, env_1, hosts, instance, arr, args, i;
+            var file, abi, mem, env, hosts, instance, a, arr, args, i, ret;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        parameters = contract_1.normalizeParams(parameters);
-                        senderAddress = utils_1.bin2hex(utils_1.normalizeAddress(sender));
-                        n = (this.nonceMap.get(senderAddress) || 0) + 1;
-                        txHash = utils_1.digest(rlp.encode([utils_1.normalizeAddress(sender), n]));
-                        contractAddress = contract_1.getContractAddress(txHash);
-                        return [4 /*yield*/, this.fetchABI(wasmFile)];
+                        // 1. substract amount
+                        this.subBalance(ctx.sender, ctx.amount);
+                        this.addBalance(ctx.contractAddress, ctx.amount);
+                        ctx.type = method === 'init' ? 16 : 17;
+                        file = this.contractCode.get(utils_1.bin2hex(ctx.contractAddress));
+                        return [4 /*yield*/, this.fetchABI(file)];
                     case 1:
                         abi = _a.sent();
-                        a = abi.filter(function (x) { return x.type === 'function' && x.name === 'init'; })[0];
-                        if (!a) return [3 /*break*/, 3];
-                        ctx = {
-                            type: 16,
-                            sender: utils_1.normalizeAddress(sender).buffer,
-                            to: new Uint8Array(20).buffer,
-                            amount: utils_1.dig2BN(amount || types_1.ZERO),
-                            nonce: n,
-                            origin: utils_1.normalizeAddress(sender).buffer,
-                            txHash: txHash.buffer,
-                            contractAddress: utils_1.address2PublicKeyHash(contractAddress).buffer
-                        };
                         mem = new WebAssembly.Memory({ initial: 10, maximum: 65535 });
-                        env_1 = {
+                        env = {
                             memory: mem,
                         };
                         hosts = [
@@ -229,8 +244,8 @@ var VirtualMachine = /** @class */ (function () {
                             new hosts_1.Transfer(this, ctx), new hosts_1.Uint256Host(this)
                         ];
                         hosts.forEach(function (h) {
-                            h.init(env_1);
-                            env_1[h.name()] = function () {
+                            h.init(env);
+                            env[h.name()] = function () {
                                 var args = [];
                                 for (var _i = 0; _i < arguments.length; _i++) {
                                     args[_i] = arguments[_i];
@@ -238,24 +253,99 @@ var VirtualMachine = /** @class */ (function () {
                                 return h.execute(args);
                             };
                         });
-                        return [4 /*yield*/, WebAssembly.instantiateStreaming(fetch(wasmFile), {
-                                env: env_1
+                        return [4 /*yield*/, WebAssembly.instantiateStreaming(fetch(file), {
+                                env: env
                             })];
                     case 2:
                         instance = (_a.sent()).instance;
-                        if (typeof instance.exports.init === 'function') {
-                            arr = this.normParams(a, parameters);
-                            args = [];
-                            for (i = 0; i < a.inputs.length; i++) {
-                                args.push(this.malloc(instance, arr[i], types_1.ABI_DATA_TYPE[a.inputs[i].type]));
-                            }
-                            instance.exports.init.apply(this, args);
+                        if (typeof instance.exports[method] !== 'function') {
+                            throw new Error("call internal failed: " + method + " not found");
                         }
-                        _a.label = 3;
-                    case 3:
-                        this.abiCache.set(contractAddress, abi);
-                        this.contractCode.set(contractAddress, wasmFile);
-                        this.nonceMap.set(senderAddress, n);
+                        a = abi.filter(function (x) { return x.type === 'function' && x.name === method; })[0];
+                        arr = this.normParams(a, params);
+                        args = [];
+                        for (i = 0; i < a.inputs.length; i++) {
+                            args.push(this.malloc(instance, arr[i], types_1.ABI_DATA_TYPE[a.inputs[i].type]));
+                        }
+                        ret = instance.exports[method].apply(window, args);
+                        if (a.outputs && a.outputs.length)
+                            return [2 /*return*/, this.extractRet(instance, ret, types_1.ABI_DATA_TYPE[a.outputs[0].type])];
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
+    VirtualMachine.prototype.extractRet = function (ins, offset, type) {
+        var ret = this.extractRetInternal(ins, offset, type);
+        if (ret instanceof ArrayBuffer)
+            return utils_1.bin2hex(ret);
+        return ret;
+    };
+    VirtualMachine.prototype.extractRetInternal = function (ins, offset, type) {
+        var view = new MemoryView(ins.exports.memory);
+        switch (type) {
+            case types_1.ABI_DATA_TYPE.bool:
+                return Number(type) !== 0;
+            case types_1.ABI_DATA_TYPE.i64:
+            case types_1.ABI_DATA_TYPE.u64:
+                return utils_1.toSafeInt(offset);
+            case types_1.ABI_DATA_TYPE.f64: {
+                return offset;
+            }
+            case types_1.ABI_DATA_TYPE.string: {
+                return utf16Decoder.decode(this.extractRetInternal(ins, offset, types_1.ABI_DATA_TYPE.bytes));
+            }
+            case types_1.ABI_DATA_TYPE.bytes: {
+                var len = view.loadU32(Number(offset) - 4);
+                return view.loadN(offset, len);
+            }
+            case types_1.ABI_DATA_TYPE.address:
+            case types_1.ABI_DATA_TYPE.u256: {
+                var ptr = view.loadU32(offset);
+                return this.extractRetInternal(ins, ptr, types_1.ABI_DATA_TYPE.bytes);
+            }
+        }
+    };
+    VirtualMachine.prototype.view = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                return [2 /*return*/, null];
+            });
+        });
+    };
+    // 合约部署
+    VirtualMachine.prototype.deploy = function (sender, wasmFile, parameters, amount) {
+        return __awaiter(this, void 0, void 0, function () {
+            var senderAddress, n, txHash, contractAddress, contractAddressHex, abi, a;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        senderAddress = utils_1.normalizeAddress(sender);
+                        n = this.increaseNonce(sender);
+                        txHash = utils_1.digest(rlp.encode([utils_1.normalizeAddress(sender), n]));
+                        contractAddress = utils_1.normalizeAddress(contract_1.getContractAddress(txHash));
+                        contractAddressHex = utils_1.bin2hex(contractAddress);
+                        return [4 /*yield*/, this.fetchABI(wasmFile)];
+                    case 1:
+                        abi = _a.sent();
+                        this.abiCache.set(contractAddressHex, abi);
+                        this.contractCode.set(contractAddressHex, wasmFile);
+                        a = abi.filter(function (x) { return x.type === 'function' && x.name === 'init'; })[0];
+                        // try to execute init function
+                        if (a) {
+                            return [2 /*return*/, this.callInternal('init', {
+                                    type: null,
+                                    sender: senderAddress,
+                                    to: new Uint8Array(20).buffer,
+                                    amount: utils_1.dig2BN(amount || types_1.ZERO),
+                                    nonce: n,
+                                    origin: senderAddress,
+                                    txHash: txHash.buffer,
+                                    contractAddress: contractAddress.buffer,
+                                    readonly: false
+                                }, parameters)];
+                        }
+                        this.nextBlock();
                         return [2 /*return*/, null];
                 }
             });

@@ -1,5 +1,5 @@
 import { ABI } from "./contract";
-import { TransactionResult, Binary, AbiInput, Digital, ABI_DATA_TYPE } from "./types";
+import { Binary, AbiInput, Digital, ABI_DATA_TYPE, Readable } from "./types";
 import BN = require('../bn');
 interface VMInstance extends WebAssembly.Instance {
     exports: {
@@ -35,13 +35,20 @@ export declare class VirtualMachine {
     now: number;
     storage: Map<string, Map<string, ArrayBuffer>>;
     constructor();
-    normParams(abi: ABI, params: AbiInput[] | Record<string, AbiInput>): AbiInput[];
+    normParams(abi: ABI, params?: AbiInput | AbiInput[] | Record<string, AbiInput>): AbiInput[];
     putParams(instance: VMInstance, abi: ABI, params: AbiInput[] | Record<string, AbiInput>): void;
     malloc(instance: VMInstance, val: AbiInput, type: ABI_DATA_TYPE): number | bigint;
     alloc(address: Binary, amount: Digital): void;
     nextBlock(): void;
-    call(sender: Binary, method: string, parameters?: AbiInput | AbiInput[] | Record<string, AbiInput>, amount?: Digital): Promise<TransactionResult>;
-    deploy(sender: Binary, wasmFile: string, parameters?: AbiInput | AbiInput[] | Record<string, AbiInput>, amount?: Digital): Promise<TransactionResult>;
+    addBalance(addr: Binary, amount?: Digital): void;
+    subBalance(addr: Binary, amount?: Digital): void;
+    increaseNonce(sender: Binary): number;
+    call(sender: Binary, addr: Binary, method: string, params?: AbiInput | AbiInput[] | Record<string, AbiInput>, amount?: Digital): Promise<Readable>;
+    private callInternal;
+    extractRet(ins: VMInstance, offset: number | bigint, type: ABI_DATA_TYPE): Readable;
+    extractRetInternal(ins: VMInstance, offset: number | bigint, type: ABI_DATA_TYPE): boolean | number | string | ArrayBuffer;
+    view(): Promise<Readable>;
+    deploy(sender: Binary, wasmFile: string, parameters?: AbiInput | AbiInput[] | Record<string, AbiInput>, amount?: Digital): Promise<Readable>;
     fetchABI(wasmFile: string): Promise<ABI[]>;
 }
 export {};

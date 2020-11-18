@@ -38,6 +38,7 @@ export interface CallContext {
     origin: ArrayBuffer;
     txHash: ArrayBuffer;
     contractAddress: ArrayBuffer;
+    readonly: boolean;
 }
 export declare class HashHost extends AbstractHost {
     execute(args: bigint[]): bigint;

@@ -1,16 +1,15 @@
-import { normalizeAddress, bin2hex, digest, bin2str, convert, dig2BN, address2PublicKeyHash, hex2bin, encodeBE, encodeUint32 } from "./utils"
+import { normalizeAddress, bin2hex, digest, bin2str, convert, dig2BN, address2PublicKeyHash, hex2bin, encodeBE, encodeUint32, toSafeInt, bytesToF64 } from "./utils"
 import { ABI, getContractAddress, normalizeParams } from "./contract"
-import { TransactionResult, Binary, AbiInput, Digital, ABI_DATA_TYPE, ZERO } from "./types"
+import { TransactionResult, Binary, AbiInput, Digital, ABI_DATA_TYPE, ZERO, Readable } from "./types"
 import { Abort, CallContext, ContextHost, DBHost, EventHost, HashHost, Log, RLPHost, Util, Reflect, Transfer, Uint256Host, AbstractHost } from './hosts'
 import BN = require('../bn')
 
 import * as rlp from './rlp'
-import { ThrowStatement } from "assemblyscript"
 
 const utf16Decoder = new TextDecoder('utf-16')
 const utf8Decoder = new TextDecoder()
 
-interface VMInstance extends WebAssembly.Instance{
+interface VMInstance extends WebAssembly.Instance {
     exports: {
         memory: WebAssembly.Memory
         __alloc: (len: number | bigint, id: number | bigint) => number | bigint
@@ -20,15 +19,15 @@ interface VMInstance extends WebAssembly.Instance{
     }
 }
 
-function strEncodeUTF16(str: string): ArrayBuffer{
-    var buf = new ArrayBuffer(str.length*2);
+function strEncodeUTF16(str: string): ArrayBuffer {
+    var buf = new ArrayBuffer(str.length * 2);
     var bufView = new Uint16Array(buf);
-    for (var i=0, strLen=str.length; i < strLen; i++) {
-      bufView[i] = str.charCodeAt(i);
+    for (var i = 0, strLen = str.length; i < strLen; i++) {
+        bufView[i] = str.charCodeAt(i);
     }
     return buf
-  }
-  
+}
+
 export class MemoryView {
     view: DataView
 
@@ -106,9 +105,9 @@ export class VirtualMachine {
     }
 
 
-    normParams(abi: ABI, params: AbiInput[] | Record<string, AbiInput>): AbiInput[]{
+    normParams(abi: ABI, params?: AbiInput | AbiInput[] | Record<string, AbiInput>): AbiInput[] {
         let p = normalizeParams(params)
-        if(Array.isArray(p))
+        if (Array.isArray(p))
             return p
         const ret = []
         abi.inputs.forEach(i => {
@@ -134,7 +133,7 @@ export class VirtualMachine {
     }
 
     malloc(instance: VMInstance, val: AbiInput, type: ABI_DATA_TYPE): number | bigint {
-        let view = new MemoryView(<WebAssembly.Memory> instance.exports.memory)
+        let view = new MemoryView(<WebAssembly.Memory>instance.exports.memory)
         let data: ArrayBuffer
         let id = Number(instance.exports.__idof(type))
         let offset: number | bigint
@@ -154,12 +153,12 @@ export class VirtualMachine {
                 break
             }
             case ABI_DATA_TYPE.bytes: {
-                data = (<Uint8Array> convert(val, ABI_DATA_TYPE.bytes)).buffer
+                data = (<Uint8Array>convert(val, ABI_DATA_TYPE.bytes)).buffer
                 offset = instance.exports.__alloc(data.byteLength, id)
                 break
             }
             case ABI_DATA_TYPE.u256: {
-                let converted = <BN> convert(val, type)
+                let converted = <BN>convert(val, type)
                 let buf = encodeBE(converted).buffer
                 let ptr = this.malloc(instance, buf, ABI_DATA_TYPE.bytes)
                 data = encodeUint32(ptr)
@@ -167,12 +166,12 @@ export class VirtualMachine {
                 break
             }
             case ABI_DATA_TYPE.address: {
-                let buf = (<Uint8Array> convert(val, ABI_DATA_TYPE.address)).buffer
+                let buf = (<Uint8Array>convert(val, ABI_DATA_TYPE.address)).buffer
                 offset = instance.exports.__alloc(4, id)
                 let ptr = this.malloc(instance, buf, ABI_DATA_TYPE.bytes)
                 data = encodeUint32(ptr)
                 break
-            } 
+            }
         }
 
         view.put(offset, data)
@@ -192,74 +191,159 @@ export class VirtualMachine {
         this.now = Math.floor((new Date()).valueOf() / 1000)
     }
 
-    // 合约调用
-    async call(sender: Binary, method: string, parameters?: AbiInput | AbiInput[] | Record<string, AbiInput>, amount?: Digital): Promise<TransactionResult> {
+    addBalance(addr: Binary, amount?: Digital) {
+        let hex = bin2hex(normalizeAddress(addr))
+        let balance = this.balanceMap.get(hex) || ZERO
+        balance = balance.add(dig2BN(amount || ZERO))
+        this.balanceMap.set(hex, balance)
+    }
+
+    subBalance(addr: Binary, amount?: Digital) {
+        let hex = bin2hex(normalizeAddress(addr))
+        let balance = this.balanceMap.get(hex) || ZERO
+        let a = dig2BN(amount || ZERO)
+        if (balance.cmp(a) < 0)
+            throw new Error(`the balance of ${hex} is not enough`)
+        balance = balance.sub(a)
+        this.balanceMap.set(hex, balance)
+    }
+
+    increaseNonce(sender: Binary): number {
+        let senderHex = bin2hex(normalizeAddress(sender))
+        const n = (this.nonceMap.get(senderHex) || 0) + 1
+        this.nonceMap.set(senderHex, n)
+        return n
+    }
+
+    call(sender: Binary, addr: Binary, method: string, params?: AbiInput | AbiInput[] | Record<string, AbiInput>, amount?: Digital): Promise<Readable> {
+        let origin = normalizeAddress(sender).buffer
+        const n = this.increaseNonce(sender)
+        return this.callInternal(method, {
+            type: null,
+            sender: origin,
+            to: normalizeAddress(addr).buffer,
+            amount: dig2BN(amount || ZERO),
+            nonce: n,
+            origin: origin,
+            txHash: digest(rlp.encode([normalizeAddress(sender), n])).buffer,
+            contractAddress: normalizeAddress(addr).buffer,
+            readonly: false
+        }, params)
+    }
+
+    private async callInternal(method: string, ctx?: CallContext, params?: AbiInput | AbiInput[] | Record<string, AbiInput>): Promise<Readable> {
+        // 1. substract amount
+        this.subBalance(ctx.sender, ctx.amount)
+        this.addBalance(ctx.contractAddress, ctx.amount)
+        ctx.type = method === 'init' ? 16 : 17
+        const file = this.contractCode.get(bin2hex(ctx.contractAddress))
+        const abi = await this.fetchABI(file)
+
+        let mem = new WebAssembly.Memory({ initial: 10, maximum: 65535 })
+        const env = {
+            memory: mem,
+        }
+
+        const hosts: AbstractHost[] = [
+            new Log(this), new Abort(this), new Util(this),
+            new HashHost(this), new EventHost(this, ctx), new DBHost(this, ctx),
+            new ContextHost(this, ctx), new RLPHost(this), new Reflect(this),
+            new Transfer(this, ctx), new Uint256Host(this)
+        ]
+
+        hosts.forEach(h => {
+            h.init(env)
+            env[h.name()] = (...args: (number | bigint)[]) => {
+                return h.execute(args)
+            }
+        })
+
+        let instance = <VMInstance>(await WebAssembly.instantiateStreaming(fetch(file), {
+            env: env
+        })).instance
+
+        if (typeof instance.exports[method] !== 'function') {
+            throw new Error(`call internal failed: ${method} not found`)
+        }
+
+        const a = abi.filter(x => x.type === 'function' && x.name === method)[0]
+        const arr = this.normParams(a, params)
+        const args = []
+        for (let i = 0; i < a.inputs.length; i++) {
+            args.push(this.malloc(instance, arr[i], ABI_DATA_TYPE[a.inputs[i].type]))
+        }
+        let ret = instance.exports[method].apply(window, args)
+        if (a.outputs && a.outputs.length)
+            return this.extractRet(instance, ret, ABI_DATA_TYPE[a.outputs[0].type])
+
+    }
+
+    extractRet(ins: VMInstance, offset: number | bigint, type: ABI_DATA_TYPE): Readable {
+        let ret = this.extractRetInternal(ins, offset, type)
+        if (ret instanceof ArrayBuffer)
+            return bin2hex(ret)
+        return ret
+    }
+
+    extractRetInternal(ins: VMInstance, offset: number | bigint, type: ABI_DATA_TYPE): boolean | number | string | ArrayBuffer {
+        let view = new MemoryView(ins.exports.memory)
+        switch (type) {
+            case ABI_DATA_TYPE.bool:
+                return Number(type) !== 0
+            case ABI_DATA_TYPE.i64:
+            case ABI_DATA_TYPE.u64:
+                return toSafeInt(offset)
+            case ABI_DATA_TYPE.f64: {
+                return <number>offset
+            }
+            case ABI_DATA_TYPE.string: {
+                return utf16Decoder.decode(<ArrayBuffer>this.extractRetInternal(ins, offset, ABI_DATA_TYPE.bytes))
+            }
+            case ABI_DATA_TYPE.bytes: {
+                let len = view.loadU32(Number(offset) - 4)
+                return view.loadN(offset, len)
+            }
+            case ABI_DATA_TYPE.address:
+            case ABI_DATA_TYPE.u256: {
+                let ptr = view.loadU32(offset)
+                return this.extractRetInternal(ins, ptr, ABI_DATA_TYPE.bytes)
+            }
+        }
+    }
+
+    async view(): Promise<Readable> {
         return null
     }
 
     // 合约部署
-    async deploy(sender: Binary, wasmFile: string, parameters?: AbiInput | AbiInput[] | Record<string, AbiInput>, amount?: Digital): Promise<TransactionResult> {
-        parameters = normalizeParams(parameters)
-        let senderAddress = bin2hex(normalizeAddress(sender))
-        const n = (this.nonceMap.get(senderAddress) || 0) + 1
+    async deploy(sender: Binary, wasmFile: string, parameters?: AbiInput | AbiInput[] | Record<string, AbiInput>, amount?: Digital): Promise<Readable> {
+        let senderAddress = normalizeAddress(sender)
         // 用 keccak256(rlp([sender, nonce  ])) 模拟事务哈希值 计算地址
+        const n = this.increaseNonce(sender)
         const txHash = digest(rlp.encode([normalizeAddress(sender), n]))
-        const contractAddress = getContractAddress(txHash)
+        const contractAddress = normalizeAddress(getContractAddress(txHash))
+        const contractAddressHex = bin2hex(contractAddress)
+
         const abi = await this.fetchABI(wasmFile)
+        this.abiCache.set(contractAddressHex, abi)
+        this.contractCode.set(contractAddressHex, wasmFile)
 
         const a = abi.filter(x => x.type === 'function' && x.name === 'init')[0]
         // try to execute init function
         if (a) {
-
-            const ctx: CallContext = {
-                type: 16,
-                sender: normalizeAddress(sender).buffer,
+            return this.callInternal('init', {
+                type: null,
+                sender: senderAddress,
                 to: new Uint8Array(20).buffer,
                 amount: dig2BN(amount || ZERO),
                 nonce: n,
-                origin: normalizeAddress(sender).buffer,
+                origin: senderAddress,
                 txHash: txHash.buffer,
-                contractAddress: address2PublicKeyHash(contractAddress).buffer
-            }
-
-            let mem = new WebAssembly.Memory({ initial: 10, maximum: 65535 })
-
-            const env = {
-                memory: mem,
-            }
-
-            const hosts: AbstractHost[] = [
-                new Log(this), new Abort(this), new Util(this),
-                new HashHost(this), new EventHost(this, ctx), new DBHost(this, ctx),
-                new ContextHost(this, ctx), new RLPHost(this), new Reflect(this),
-                new Transfer(this, ctx), new Uint256Host(this)
-            ]
-
-
-            hosts.forEach(h => {
-                h.init(env)
-                env[h.name()] = (...args: (number | bigint)[]) => {
-                    return h.execute(args)
-                }
-            })
-
-            let instance = <VMInstance> (await WebAssembly.instantiateStreaming(fetch(wasmFile), {
-                env: env
-            })).instance
-
-            if (typeof instance.exports.init === 'function') {
-                const arr = this.normParams(a, parameters)
-                const args = []
-                for(let i = 0; i < a.inputs.length; i++){
-                    args.push(this.malloc(instance, arr[i], ABI_DATA_TYPE[a.inputs[i].type]))
-                }
-                instance.exports.init.apply(this, args)
-            }
+                contractAddress: contractAddress.buffer,
+                readonly: false
+            }, parameters)
         }
-
-        this.abiCache.set(contractAddress, abi)
-        this.contractCode.set(contractAddress, wasmFile)
-        this.nonceMap.set(senderAddress, n)
+        this.nextBlock()
         return null
     }
 
