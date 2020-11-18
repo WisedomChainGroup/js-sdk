@@ -1,6 +1,9 @@
 import { ABI } from "./contract";
 import { Binary, AbiInput, Digital, ABI_DATA_TYPE, Readable } from "./types";
 import BN = require('../bn');
+/**
+ * 虚拟机实例
+ */
 interface VMInstance extends WebAssembly.Instance {
     exports: {
         memory: WebAssembly.Memory;

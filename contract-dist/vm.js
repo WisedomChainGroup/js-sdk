@@ -45,6 +45,10 @@ var BN = require("../bn");
 var rlp = require("./rlp");
 var utf16Decoder = new TextDecoder('utf-16');
 var utf8Decoder = new TextDecoder();
+/**
+ * 对字符串进行 utf16 编码，用于向内存中导入
+ * @param str
+ */
 function strEncodeUTF16(str) {
     var buf = new ArrayBuffer(str.length * 2);
     var bufView = new Uint16Array(buf);

@@ -9,6 +9,9 @@ import * as rlp from './rlp'
 const utf16Decoder = new TextDecoder('utf-16')
 const utf8Decoder = new TextDecoder()
 
+/**
+ * 虚拟机实例
+ */
 interface VMInstance extends WebAssembly.Instance {
     exports: {
         memory: WebAssembly.Memory
@@ -19,6 +22,10 @@ interface VMInstance extends WebAssembly.Instance {
     }
 }
 
+/**
+ * 对字符串进行 utf16 编码，用于向 WebAssembly 内存中导入
+ * @param str 
+ */
 function strEncodeUTF16(str: string): ArrayBuffer {
     var buf = new ArrayBuffer(str.length * 2);
     var bufView = new Uint16Array(buf);
