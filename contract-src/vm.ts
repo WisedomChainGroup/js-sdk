@@ -145,11 +145,14 @@ export class VirtualMachine {
         let id = Number(instance.exports.__idof(type))
         let offset: number | bigint
         switch (type) {
-            case ABI_DATA_TYPE.bool:
             case ABI_DATA_TYPE.f64:
+            case ABI_DATA_TYPE.bool:
             case ABI_DATA_TYPE.i64:
             case ABI_DATA_TYPE.u64: {
                 let converted = convert(val, type)
+                if(type === ABI_DATA_TYPE.f64){
+                    return bytesToF64(<Uint8Array> converted)
+                }
                 let l = <BN>(converted instanceof Uint8Array ? new BN(converted, 10, 'be') : converted)
                 return BigInt(l.toString(10))
             }
@@ -298,8 +301,15 @@ export class VirtualMachine {
             case ABI_DATA_TYPE.bool:
                 return Number(type) !== 0
             case ABI_DATA_TYPE.i64:
-            case ABI_DATA_TYPE.u64:
                 return toSafeInt(offset)
+            case ABI_DATA_TYPE.u64:{
+                if(offset < 0){
+                    let buf = new ArrayBuffer(8)
+                    new DataView(buf).setBigInt64(0, BigInt(offset))
+                    return toSafeInt(buf)
+                }
+                return toSafeInt(offset)
+            }
             case ABI_DATA_TYPE.f64: {
                 return <number>offset
             }
