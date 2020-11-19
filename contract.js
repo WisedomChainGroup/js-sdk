@@ -1562,7 +1562,7 @@
                 return Promise.resolve(this)
             }
 
-            if (this.__ws) {
+            if (this.__ws && this.__ws.readyState === WS.CONNECTING) {
                 const fn = this.__ws.onopen || (() => {
                 })
                 const p = new Promise((rs, rj) => {

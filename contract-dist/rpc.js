@@ -37,7 +37,7 @@ var RPC = /** @class */ (function () {
         if (this.ws && this.ws.readyState === this.ws.OPEN) {
             return Promise.resolve();
         }
-        if (this.ws) {
+        if (this.ws && this.ws.readyState === this.ws.CONNECTING) {
             var fn_1 = this.ws.onopen || (function (e) { });
             var _rj_1 = this.ws.onerror || (function (e) { });
             var p_1 = new Promise(function (rs, rj) {

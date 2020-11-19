@@ -46,7 +46,7 @@ var rlp = require("./rlp");
 var utf16Decoder = new TextDecoder('utf-16');
 var utf8Decoder = new TextDecoder();
 /**
- * 对字符串进行 utf16 编码，用于向内存中导入
+ * 对字符串进行 utf16 编码，用于向 WebAssembly 内存中导入
  * @param str
  */
 function strEncodeUTF16(str) {
@@ -138,11 +138,17 @@ var VirtualMachine = /** @class */ (function () {
         var id = Number(instance.exports.__idof(type));
         var offset;
         switch (type) {
-            case types_1.ABI_DATA_TYPE.bool:
             case types_1.ABI_DATA_TYPE.f64:
+            case types_1.ABI_DATA_TYPE.bool:
             case types_1.ABI_DATA_TYPE.i64:
             case types_1.ABI_DATA_TYPE.u64: {
                 var converted = utils_1.convert(val, type);
+                if (type === types_1.ABI_DATA_TYPE.f64) {
+                    return utils_1.bytesToF64(converted);
+                }
+                if (type == types_1.ABI_DATA_TYPE.bool) {
+                    return converted.toNumber();
+                }
                 var l = (converted instanceof Uint8Array ? new BN(converted, 10, 'be') : converted);
                 return BigInt(l.toString(10));
             }
@@ -281,18 +287,36 @@ var VirtualMachine = /** @class */ (function () {
     };
     VirtualMachine.prototype.extractRet = function (ins, offset, type) {
         var ret = this.extractRetInternal(ins, offset, type);
-        if (ret instanceof ArrayBuffer)
-            return utils_1.bin2hex(ret);
-        return ret;
+        if (!(ret instanceof ArrayBuffer)) {
+            return ret;
+        }
+        switch (type) {
+            case types_1.ABI_DATA_TYPE.bytes:
+                return utils_1.bin2hex(ret);
+            case types_1.ABI_DATA_TYPE.address:
+                return utils_1.publicKeyHash2Address(ret);
+            case types_1.ABI_DATA_TYPE.u256:
+                return utils_1.toSafeInt(ret);
+            default:
+                throw new Error('unexpected');
+        }
     };
     VirtualMachine.prototype.extractRetInternal = function (ins, offset, type) {
         var view = new MemoryView(ins.exports.memory);
         switch (type) {
             case types_1.ABI_DATA_TYPE.bool:
-                return Number(type) !== 0;
+                return Number(offset) !== 0;
             case types_1.ABI_DATA_TYPE.i64:
-            case types_1.ABI_DATA_TYPE.u64:
                 return utils_1.toSafeInt(offset);
+            case types_1.ABI_DATA_TYPE.u64: {
+                // 即使webassembly 返回类型是 uint, bigint 也会出现小于 0 的情况，需要自行转换
+                if (offset < 0) {
+                    var buf = new ArrayBuffer(8);
+                    new DataView(buf).setBigInt64(0, BigInt(offset));
+                    return utils_1.toSafeInt(buf);
+                }
+                return utils_1.toSafeInt(offset);
+            }
             case types_1.ABI_DATA_TYPE.f64: {
                 return offset;
             }

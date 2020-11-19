@@ -78,7 +78,7 @@ export class RPC {
             return Promise.resolve()
         }
 
-        if (this.ws) {
+        if (this.ws && this.ws.readyState === this.ws.CONNECTING) {
             const fn = this.ws.onopen || ((e) => { })
             const _rj = this.ws.onerror || ((e) => { })
             const p = new Promise((rs, rj) => {

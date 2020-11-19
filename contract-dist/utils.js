@@ -518,7 +518,7 @@ function toSafeInt(x) {
         bn = x;
     if (bn.cmp(types_1.MAX_SAFE_INTEGER) <= 0 && bn.cmp(types_1.MIN_SAFE_INTEGER) >= 0)
         return bn.toNumber();
-    return x.toString(10);
+    return bn.toString(10);
 }
 exports.toSafeInt = toSafeInt;
 /**
