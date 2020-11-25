@@ -271,9 +271,14 @@ export class VirtualMachine {
             }
         })
 
+
+        const module = await WebAssembly.compileStreaming(fetch(file))
+        console.log(module)
         let instance = <VMInstance>(await WebAssembly.instantiateStreaming(fetch(file), {
-            env: env
+            env: env,
         })).instance
+
+        console.log('initialized')
 
         if (typeof instance.exports[method] !== 'function') {
             throw new Error(`call internal failed: ${method} not found`)
@@ -285,6 +290,8 @@ export class VirtualMachine {
         for (let i = 0; i < a.inputs.length; i++) {
             args.push(this.malloc(instance, arr[i], ABI_DATA_TYPE[a.inputs[i].type]))
         }
+
+        console.log('call!!!!')
         let ret = instance.exports[method].apply(window, args)
         if (a.outputs && a.outputs.length)
             return this.extractRet(instance, ret, ABI_DATA_TYPE[a.outputs[0].type])

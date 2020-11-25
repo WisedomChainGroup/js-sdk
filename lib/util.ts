@@ -126,13 +126,13 @@ export class U256 {
     }
 
     safeMul(u: U256): U256 {
-        if (this == u) {
+        if (this == U256.ZERO || u == U256.ZERO) {
             return U256.ZERO;
         }
 
         const c = this.mul(u);
-        assert(c.div(this).compareTo(u) == 0, "SafeMath: multiplication overflow ");
-        return c;
+        assert(c.div(this).compareTo(u) == 0, "SafeMath: multiplication overflow ")
+        return c
     }
 
     div(u: U256): U256 {
@@ -140,12 +140,12 @@ export class U256 {
     }
 
     safeDiv(u: U256): U256 {
-        assert(u.compareTo(U256.ZERO) > 0, "SafeMath: modulo by zero");
+        assert(u.compareTo(U256.ZERO) > 0, "SafeMath: modulo by zero")
         return this.div(u);
     }
 
     mod(u: U256): U256 {
-        return this.arithmetic(U256Type.MOD, u);
+        return this.arithmetic(U256Type.MOD, u)
     }
 
     safeMod(u: U256): U256 {
