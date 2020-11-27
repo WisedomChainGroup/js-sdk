@@ -2,11 +2,10 @@
  * base58 编码工具
  * @param {string} ALPHABET
  */
-import Dict = NodeJS.Dict;
 import { hex2bin } from "./utils";
 
 export class Base {
-    ALPHABET_MAP: Dict<number>
+    ALPHABET_MAP: Record<string, number>
     BASE: number
     LEADER: string
     ALPHABET: string

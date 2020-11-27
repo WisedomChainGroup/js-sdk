@@ -755,6 +755,49 @@
             const t = parseInt(this.type)
             return t === constants.WASM_DEPLOY || t === constants.WASM_CALL
         }
+
+        static fromRaw(x) {
+            var args = []
+            var offset = 0
+            var shift = function (n) {
+                offset = offset + n
+                return offset
+            }
+            var u8 = decodeHex(x)
+            // version
+            args.push(u8[offset++])
+            // type
+            args.push(u8[offset++])
+            // nonce
+            args.push(new BN(u8.slice(offset, shift(8)), 'hex', 'be'))
+            // from
+            args.push(u8.slice(offset, shift(32)))
+            // gasprice
+            args.push(new BN(u8.slice(offset, shift(8)), 'hex', 'be'))
+            // amount
+            args.push(new BN(u8.slice(offset, shift(8)), 'hex', 'be'))
+            // signature
+            var sig = u8.slice(offset, shift(64))
+            // to
+            var to = u8.slice(offset, shift(20))
+            // payload length
+            var len = (new BN(u8.slice(offset, shift(4)), 'hex', 'be')).toNumber()
+            // payload
+            var p = u8.slice(offset, shift(len))
+            args.push(p, to, sig);
+            return new Transaction(
+                args[0],
+                args[1],
+                args[2],
+                args[3],
+                args[4],
+                args[5],
+                p,
+                to,
+                sig
+            )
+
+        }
     }
 
     /**
@@ -1879,7 +1922,7 @@
                 this.__rpcCallbacks.set(n, (r) => {
                     if(tm)
                         clearTimeout(tm)
-                    rs(r)    
+                    rs(r)
                 })
             })
             this.__tryConnect()
@@ -2252,6 +2295,7 @@
         Contract: Contract,
         TX_STATUS: TX_STATUS,
         publicKeyHash2Address: publicKeyHash2Address,
+        Transaction: Transaction,
         RLP: RLP
     }
 

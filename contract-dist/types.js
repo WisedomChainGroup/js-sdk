@@ -44,3 +44,4 @@ exports.MAX_SAFE_INTEGER = new BN(Number.MAX_SAFE_INTEGER);
 exports.MIN_SAFE_INTEGER = new BN(Number.MIN_SAFE_INTEGER);
 exports.ONE = new BN(1);
 exports.ZERO = new BN(0);
+//# sourceMappingURL=types.js.map

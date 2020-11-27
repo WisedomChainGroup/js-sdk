@@ -231,7 +231,7 @@ var VirtualMachine = /** @class */ (function () {
     };
     VirtualMachine.prototype.callInternal = function (method, ctx, params) {
         return __awaiter(this, void 0, void 0, function () {
-            var file, abi, mem, env, hosts, instance, a, arr, args, i, ret;
+            var file, abi, mem, env, hosts, module, instance, a, arr, args, i, ret;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -263,11 +263,16 @@ var VirtualMachine = /** @class */ (function () {
                                 return h.execute(args);
                             };
                         });
-                        return [4 /*yield*/, WebAssembly.instantiateStreaming(fetch(file), {
-                                env: env
-                            })];
+                        return [4 /*yield*/, WebAssembly.compileStreaming(fetch(file))];
                     case 2:
+                        module = _a.sent();
+                        console.log(module);
+                        return [4 /*yield*/, WebAssembly.instantiateStreaming(fetch(file), {
+                                env: env,
+                            })];
+                    case 3:
                         instance = (_a.sent()).instance;
+                        console.log('initialized');
                         if (typeof instance.exports[method] !== 'function') {
                             throw new Error("call internal failed: " + method + " not found");
                         }
@@ -277,6 +282,7 @@ var VirtualMachine = /** @class */ (function () {
                         for (i = 0; i < a.inputs.length; i++) {
                             args.push(this.malloc(instance, arr[i], types_1.ABI_DATA_TYPE[a.inputs[i].type]));
                         }
+                        console.log('call!!!!');
                         ret = instance.exports[method].apply(window, args);
                         if (a.outputs && a.outputs.length)
                             return [2 /*return*/, this.extractRet(instance, ret, types_1.ABI_DATA_TYPE[a.outputs[0].type])];
@@ -403,3 +409,4 @@ var VirtualMachine = /** @class */ (function () {
     return VirtualMachine;
 }());
 exports.VirtualMachine = VirtualMachine;
+//# sourceMappingURL=vm.js.map

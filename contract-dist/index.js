@@ -33,3 +33,4 @@ var tx_1 = require("./tx");
 Object.defineProperty(exports, "Transaction", { enumerable: true, get: function () { return tx_1.Transaction; } });
 var vm_1 = require("./vm");
 Object.defineProperty(exports, "VirtualMachine", { enumerable: true, get: function () { return vm_1.VirtualMachine; } });
+//# sourceMappingURL=index.js.map

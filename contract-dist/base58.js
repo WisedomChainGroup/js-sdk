@@ -1,6 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Base58 = exports.Base = void 0;
+/**
+ * base58 编码工具
+ * @param {string} ALPHABET
+ */
 var utils_1 = require("./utils");
 var Base = /** @class */ (function () {
     function Base(ALPHABET) {
@@ -79,3 +83,4 @@ var Base = /** @class */ (function () {
 }());
 exports.Base = Base;
 exports.Base58 = new Base('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz');
+//# sourceMappingURL=base58.js.map

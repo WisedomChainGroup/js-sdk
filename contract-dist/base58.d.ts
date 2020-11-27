@@ -1,11 +1,5 @@
-/// <reference types="node" />
-/**
- * base58 编码工具
- * @param {string} ALPHABET
- */
-import Dict = NodeJS.Dict;
 export declare class Base {
-    ALPHABET_MAP: Dict<number>;
+    ALPHABET_MAP: Record<string, number>;
     BASE: number;
     LEADER: string;
     ALPHABET: string;

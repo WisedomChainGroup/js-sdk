@@ -1,14 +1,14 @@
 /**
  * 事务
  */
-import {AbiInput, ABI_DATA_TYPE, Binary, constants, Digital, Readable} from "./types"
-import {bin2str, concatArray, convert, dig2str, digest, extendPrivateKey, hex2bin, padPrefix, toSafeInt} from "./utils"
-import {bin2hex} from "./utils"
+import { AbiInput, ABI_DATA_TYPE, Binary, constants, Digital, Readable } from "./types"
+import { bin2str, concatArray, convert, dig2str, digest, extendPrivateKey, hex2bin, padPrefix, toSafeInt } from "./utils"
+import { bin2hex } from "./utils"
 import BN = require("../bn")
 import rlp = require('./rlp')
 import nacl = require('../nacl.min.js')
-import {Encoder} from "./rlp"
-import {ABI, Contract} from "./contract"
+import { Encoder } from "./rlp"
+import { ABI, Contract } from "./contract"
 
 export class Transaction implements Encoder {
     version: string
@@ -45,6 +45,50 @@ export class Transaction implements Encoder {
     }
 
     /**
+     * 
+     * @param x 解析16进制字符串的事务
+     */
+    static fromRaw(x: Binary): Transaction {
+        const args = []
+        let offset = 0
+        const shift = (n: number) => {
+            offset = offset + n
+            return offset
+        }
+        const u8 = hex2bin(x)
+        // version
+        args.push(u8[offset++])
+        // type
+        args.push(u8[offset++])
+        // nonce
+        args.push(
+            new BN(u8.slice(offset, shift(8)), 'hex', 'be')
+        )
+        // from
+        args.push(u8.slice(offset, shift(32)))
+        // gasprice
+        args.push(
+            new BN(u8.slice(offset, shift(8)), 'hex', 'be')
+        )
+        // amount
+        args.push(
+            new BN(u8.slice(offset, shift(8)), 'hex', 'be')
+        )
+        // signature
+        const sig = u8.slice(offset, shift(64))
+        
+        // to
+        const to = u8.slice(offset, shift(20))
+        
+        // payload length
+        const len = (new BN(u8.slice(offset, shift(4)), 'hex', 'be')).toNumber()
+        // payload
+        const p = u8.slice(offset, shift(len))
+        args.push(p, to, sig)
+        return new Transaction(...args)
+    }
+
+    /**
      * 计算事务哈希值
      */
     getHash(): Uint8Array {
@@ -53,6 +97,7 @@ export class Transaction implements Encoder {
 
     /**
      * 生成事务签名或者哈希值计算需要的原文
+     * 如果需要签名的话 getRaw 填写 true
      */
     getRaw(nullSig: boolean): Uint8Array {
         let sig = nullSig ? new Uint8Array(64) : hex2bin(this.signature)

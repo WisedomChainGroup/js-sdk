@@ -5,3 +5,4 @@ local
 .DS_Store
 bundle.js*
 .vscode
+*.map

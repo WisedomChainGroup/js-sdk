@@ -23,11 +23,17 @@ export declare class Transaction implements Encoder {
     constructor(version?: Digital, type?: Digital, nonce?: Digital, from?: Binary, gasPrice?: Digital, amount?: Digital, payload?: Binary, to?: Binary, signature?: Binary, __abi?: any, __inputs?: any);
     static clone(o: any): Transaction;
     /**
+     *
+     * @param x 解析16进制字符串的事务
+     */
+    static fromRaw(x: Binary): Transaction;
+    /**
      * 计算事务哈希值
      */
     getHash(): Uint8Array;
     /**
      * 生成事务签名或者哈希值计算需要的原文
+     * 如果需要签名的话 getRaw 填写 true
      */
     getRaw(nullSig: boolean): Uint8Array;
     /**

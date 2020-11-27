@@ -1,4 +1,11 @@
 "use strict";
+var __spreadArrays = (this && this.__spreadArrays) || function () {
+    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+    for (var r = Array(s), k = 0, i = 0; i < il; i++)
+        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+            r[k] = a[j];
+    return r;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Transaction = void 0;
 /**
@@ -32,6 +39,41 @@ var Transaction = /** @class */ (function () {
         return new Transaction(o.version, o.type, o.nonce, o.from, o.gasPrice, o.amount, o.payload, o.to, o.signature);
     };
     /**
+     *
+     * @param x 解析16进制字符串的事务
+     */
+    Transaction.fromRaw = function (x) {
+        var args = [];
+        var offset = 0;
+        var shift = function (n) {
+            offset = offset + n;
+            return offset;
+        };
+        var u8 = utils_1.hex2bin(x);
+        // version
+        args.push(u8[offset++]);
+        // type
+        args.push(u8[offset++]);
+        // nonce
+        args.push(new BN(u8.slice(offset, shift(8)), 'hex', 'be'));
+        // from
+        args.push(u8.slice(offset, shift(32)));
+        // gasprice
+        args.push(new BN(u8.slice(offset, shift(8)), 'hex', 'be'));
+        // amount
+        args.push(new BN(u8.slice(offset, shift(8)), 'hex', 'be'));
+        // signature
+        var sig = u8.slice(offset, shift(64));
+        // to
+        var to = u8.slice(offset, shift(20));
+        // payload length
+        var len = (new BN(u8.slice(offset, shift(4)), 'hex', 'be')).toNumber();
+        // payload
+        var p = u8.slice(offset, shift(len));
+        args.push(p, to, sig);
+        return new (Transaction.bind.apply(Transaction, __spreadArrays([void 0], args)))();
+    };
+    /**
      * 计算事务哈希值
      */
     Transaction.prototype.getHash = function () {
@@ -39,6 +81,7 @@ var Transaction = /** @class */ (function () {
     };
     /**
      * 生成事务签名或者哈希值计算需要的原文
+     * 如果需要签名的话 getRaw 填写 true
      */
     Transaction.prototype.getRaw = function (nullSig) {
         var sig = nullSig ? new Uint8Array(64) : utils_1.hex2bin(this.signature);
@@ -121,3 +164,4 @@ var Transaction = /** @class */ (function () {
     return Transaction;
 }());
 exports.Transaction = Transaction;
+//# sourceMappingURL=tx.js.map

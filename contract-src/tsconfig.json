@@ -7,6 +7,7 @@
     "module": "commonjs", // 指定生成哪个模块系统代码
     "target": "ES5",
     "outDir": "../contract-dist",
-    "declaration": true // 是否自动创建类型声明文件
+    "declaration": true, // 是否自动创建类型声明文件,
+    "sourceMap": true
   }
 }
