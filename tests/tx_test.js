@@ -1,5 +1,16 @@
 const t = require('../contract-dist')
 
-const x = '01170000000000000060dc9f68fc00e994fc0a61fa01b8d6837c9e6a74829100f7cdab27c70166a7d10200000000000000641bc16d674ec8000096a30f4375a94c53a4759643c72c76a7d248f69318d5050178bff179abcfb9e10036d405cf1ced9a8ac27ad8e623912f5c3414ced986969a3ac3f1f645f1bc06c0d1b22da3d6ad37758bb9a97a89a5f9a386142600000000'
+const tx = {
+    version: '1',
+    type: '17',
+    nonce: 5,
+    from: '5b7514a3d3337022cfaf9619b8d7dc8c5fbbb3c3d942ded3ee240248c0550ad8',
+    gasPrice: '100',
+    amount: '0',
+    payload: 'd580877365744e616d65cbc104c78679756e6d696ec0',
+    to: 'b2dab0ef995f41325cf58ab9ae26b3e17a04c4fe',
+    signature: ''
+}
 
-console.log(t.Transaction.fromRaw(x))
+
+console.log(t.bin2hex(t.Transaction.clone(tx).getRaw(true)))

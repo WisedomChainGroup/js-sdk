@@ -39,10 +39,18 @@ var Transaction = /** @class */ (function () {
         return new Transaction(o.version, o.type, o.nonce, o.from, o.gasPrice, o.amount, o.payload, o.to, o.signature);
     };
     /**
+     * 解析16进制字符串的事务，包含哈希值
+     * @param x
+     */
+    Transaction.fromRPCBytes = function (x) {
+        return Transaction.fromRaw(x, true);
+    };
+    /**
      *
      * @param x 解析16进制字符串的事务
      */
-    Transaction.fromRaw = function (x) {
+    Transaction.fromRaw = function (x, hash) {
+        if (hash === void 0) { hash = false; }
         var args = [];
         var offset = 0;
         var shift = function (n) {
@@ -52,6 +60,9 @@ var Transaction = /** @class */ (function () {
         var u8 = utils_1.hex2bin(x);
         // version
         args.push(u8[offset++]);
+        // skip hash
+        if (hash)
+            offset += 32;
         // type
         args.push(u8[offset++]);
         // nonce

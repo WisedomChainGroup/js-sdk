@@ -756,7 +756,11 @@
             return t === constants.WASM_DEPLOY || t === constants.WASM_CALL
         }
 
-        static fromRaw(x) {
+        static fromRPCBytes(x){
+            return Transaction.fromRaw(x, true)
+        }
+        
+        static fromRaw(x, hash) {
             var args = []
             var offset = 0
             var shift = function (n) {
@@ -766,6 +770,8 @@
             var u8 = decodeHex(x)
             // version
             args.push(u8[offset++])
+            if(hash)
+                offset += 32
             // type
             args.push(u8[offset++])
             // nonce

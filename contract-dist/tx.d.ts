@@ -23,10 +23,15 @@ export declare class Transaction implements Encoder {
     constructor(version?: Digital, type?: Digital, nonce?: Digital, from?: Binary, gasPrice?: Digital, amount?: Digital, payload?: Binary, to?: Binary, signature?: Binary, __abi?: any, __inputs?: any);
     static clone(o: any): Transaction;
     /**
+     * 解析16进制字符串的事务，包含哈希值
+     * @param x
+     */
+    static fromRPCBytes(x: Binary): Transaction;
+    /**
      *
      * @param x 解析16进制字符串的事务
      */
-    static fromRaw(x: Binary): Transaction;
+    static fromRaw(x: Binary, hash?: boolean): Transaction;
     /**
      * 计算事务哈希值
      */

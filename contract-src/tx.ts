@@ -45,10 +45,18 @@ export class Transaction implements Encoder {
     }
 
     /**
+     * 解析16进制字符串的事务，包含哈希值
+     * @param x 
+     */
+    static fromRPCBytes(x: Binary): Transaction{
+        return Transaction.fromRaw(x, true)
+    }
+
+    /**
      * 
      * @param x 解析16进制字符串的事务
      */
-    static fromRaw(x: Binary): Transaction {
+    static fromRaw(x: Binary, hash = false): Transaction {
         const args = []
         let offset = 0
         const shift = (n: number) => {
@@ -58,6 +66,9 @@ export class Transaction implements Encoder {
         const u8 = hex2bin(x)
         // version
         args.push(u8[offset++])
+        // skip hash
+        if(hash)
+            offset += 32
         // type
         args.push(u8[offset++])
         // nonce
